@@ -1,0 +1,9 @@
+{
+  "name": "dongnebaedal",
+  "main": "src/worker.js",
+  "compatibility_date": "2025-02-24",
+  "assets": { "directory": "./public", "binding": "ASSETS" },
+  "kv_namespaces": [
+    { "binding": "DB", "id": "ba3700b9f3a14e5882b5fe8a96e1e946" }
+  ]
+}
