@@ -58,9 +58,21 @@ function cleanStore(b, base = {}) {
 // 손님에게 보여 줄 때는 전화번호·소개 외 필요한 것만
 const publicStore = (s) => ({ id: s.id, name: s.name, cat: s.cat, menu: s.menu, link: s.link, addr: s.addr, intro: s.intro, lat: s.lat, lng: s.lng, ad: !!s.ad, example: !!s.example });
 
-function isAdmin(request, env) {
-  const pw = request.headers.get("x-admin-pw") || "";
-  return !!env.ADMIN_PW && pw.length > 0 && pw === env.ADMIN_PW;
+// 관리 비밀번호는 원문 대신 암호화된 값만 저장해요 (PBKDF2)
+const PW_SALT = "8f9bd4dae2fe70f40bc50854186f3255";
+const PW_HASH = "e39923ee52eca0c63e43eff24bd5489b7bcd69da62e83b0a44cba0d813f5542c";
+const hex2buf = (h) => new Uint8Array(h.match(/../g).map((b) => parseInt(b, 16)));
+async function pwMatches(pw) {
+  const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(pw), "PBKDF2", false, ["deriveBits"]);
+  const bits = await crypto.subtle.deriveBits({ name: "PBKDF2", hash: "SHA-256", salt: hex2buf(PW_SALT), iterations: 100000 }, key, 256);
+  const got = [...new Uint8Array(bits)].map((b) => b.toString(16).padStart(2, "0")).join("");
+  return got === PW_HASH;
+}
+async function isAdmin(request, env) {
+  const pw = (request.headers.get("x-admin-pw") || "").trim();
+  if (!pw || pw.length > 100) return false;
+  if (env.ADMIN_PW && pw === env.ADMIN_PW) return true;
+  return await pwMatches(pw);
 }
 
 async function handleApi(request, env, path) {
@@ -99,7 +111,7 @@ async function handleApi(request, env, path) {
 
   // ── 관리자용 ──
   if (path.startsWith("admin/")) {
-    if (!isAdmin(request, env)) return json({ error: "비밀번호가 맞지 않아요." }, 401);
+    if (!(await isAdmin(request, env))) return json({ error: "비밀번호가 맞지 않아요." }, 401);
     const act = path.slice(6);
 
     if (act === "list") {
