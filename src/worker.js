@@ -29,6 +29,8 @@ const json = (data, status = 200) =>
   new Response(JSON.stringify(data), { status, headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" } });
 
 const clip = (v, n) => String(v ?? "").trim().slice(0, n);
+// 유튜브 주소에서 영상 ID만 뽑아 저장 (watch?v=, youtu.be/, shorts/ 모두 지원)
+const ytId = (v) => { const m = String(v || "").match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?(?:.*&)?v=|shorts\/|embed\/|live\/))([A-Za-z0-9_-]{11})/); return m ? m[1] : (/^[A-Za-z0-9_-]{11}$/.test(String(v || "").trim()) ? String(v).trim() : ""); };
 const okLink = (v) => /^https:\/\/[^\s"'<>]+$/i.test(v);
 const num = (v) => (typeof v === "number" && isFinite(v) ? v : null);
 
@@ -48,6 +50,7 @@ function cleanStore(b, base = {}) {
   if (b.link !== undefined) s.link = clip(b.link, 400);
   if (b.phone !== undefined) s.phone = clip(b.phone, 20).replace(/[^0-9+\-\s]/g, "");
   if (b.showTel !== undefined) s.showTel = !!b.showTel;
+  if (b.yt !== undefined) { s.yt = ytId(b.yt); s.ytShort = /shorts\//.test(String(b.yt)) || (!!b.ytShort && !/watch|youtu\.be/.test(String(b.yt))); }
   if (b.addr !== undefined) s.addr = clip(b.addr, 80);
   if (b.intro !== undefined) s.intro = clip(b.intro, 120);
   if (b.lat !== undefined) s.lat = num(b.lat);
@@ -60,7 +63,7 @@ function cleanStore(b, base = {}) {
 const telOf = (s) => (s.showTel && s.phone ? s.phone.replace(/[^0-9+]/g, "") : "");
 // 주문 링크나 손님 공개 전화 중 하나는 있어야 해요
 const hasAction = (s) => okLink(s.link || "") || !!telOf(s);
-const publicStore = (s) => ({ id: s.id, name: s.name, cat: s.cat, menu: s.menu, link: okLink(s.link || "") ? s.link : "", tel: telOf(s), addr: s.addr, intro: s.intro, lat: s.lat, lng: s.lng, ad: !!s.ad, example: !!s.example });
+const publicStore = (s) => ({ id: s.id, name: s.name, cat: s.cat, menu: s.menu, link: okLink(s.link || "") ? s.link : "", tel: telOf(s), yt: s.yt || "", ytShort: !!s.ytShort, addr: s.addr, intro: s.intro, lat: s.lat, lng: s.lng, ad: !!s.ad, example: !!s.example });
 
 // 관리 비밀번호는 원문 대신 암호화된 값만 저장해요 (PBKDF2)
 const PW_SALT = "8f9bd4dae2fe70f40bc50854186f3255";
@@ -321,6 +324,8 @@ async function handleApi(request, env, path) {
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
+    // www.dongnebaedal.com → dongnebaedal.com 으로 통일 (검색 점수가 한 주소로 모여요)
+    if (url.hostname.startsWith("www.")) { url.hostname = url.hostname.slice(4); return Response.redirect(url.toString(), 301); }
     if (url.pathname.startsWith("/api/")) {
       try { return await handleApi(request, env, url.pathname.slice(5)); }
       catch (e) { return json({ error: "서버 오류가 났어요. 잠시 후 다시 시도해 주세요." }, 500); }
