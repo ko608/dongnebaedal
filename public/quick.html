@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="ko"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex">
+<title>동네배달 퀵 접수</title>
+<style>
+:root{--bg:#FFFBEF;--ink:#23242B;--line:#E9E2CF}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:'Noto Sans KR',system-ui,-apple-system,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;font-size:15px}
+main{max-width:560px;margin:0 auto;padding:16px 16px 60px}
+h1{font-size:20px;margin:6px 0 2px}.sub{color:#777;font-size:12px}
+.card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px;margin-top:10px}
+.new{border:2px solid #FF6A00}
+input{width:100%;height:50px;border:1px solid #ccc;border-radius:12px;padding:0 14px;font-size:18px;letter-spacing:3px;text-transform:uppercase}
+button{border:0;border-radius:12px;font-weight:800;font-size:15px;height:48px;padding:0 14px;cursor:pointer}
+.b-dark{background:#111;color:#fff}.b-go{background:#00C73C;color:#fff}.b-blue{background:#1E88E5;color:#fff}.b-gray{background:#eee;color:#555}
+.row{display:flex;gap:8px;margin-top:10px}.row>*{flex:1}
+.bal{display:flex;justify-content:space-between;align-items:center;background:#fff;border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin-top:12px}
+.bal b{font-size:22px}.low{color:#D32F2F}
+.tag{font-size:12px;font-weight:800;padding:3px 8px;border-radius:99px;color:#fff}
+.meta{color:#666;font-size:13px;margin-top:4px;line-height:1.6}
+.route{font-size:17px;font-weight:800;line-height:1.4}
+a.call{display:block;text-align:center;line-height:48px;background:#00C73C;color:#fff;border-radius:12px;font-weight:800;text-decoration:none;margin-top:10px}
+#msg{color:#D32F2F;font-size:13px;min-height:1em;margin-top:8px}
+.tabs{display:flex;gap:6px;margin-top:14px}.tabs button{height:36px;font-size:13px;background:#fff;border:1px solid var(--line)}.tabs .on{background:#111;color:#fff}
+</style></head>
+<body><main>
+<h1>🛵 동네배달 퀵 접수</h1><div class="sub">제휴 퀵 업체 전용 화면</div>
+
+<div id="login" class="card">
+  <div style="font-weight:800">접속 코드</div>
+  <input id="key" maxlength="12" autocomplete="off" autocapitalize="characters" placeholder="코드 6자리" style="margin-top:8px">
+  <button id="go" class="b-dark" style="width:100%;margin-top:8px">입장</button>
+  <div id="msg"></div>
+</div>
+
+<div id="app" style="display:none">
+  <div class="bal"><div><div class="sub" id="pname"></div>남은 충전금</div><div style="text-align:right"><b id="bal">0원</b><div class="sub">건당 <span id="fee">0</span>원 차감</div></div></div>
+  <button id="sound" class="b-blue" style="width:100%;margin-top:10px">🔔 새 요청 알림 소리 켜기</button>
+  <div class="tabs"><button data-f="new" class="on">새 요청 <span id="cNew">0</span></button><button data-f="accepted">진행 중 <span id="cAcc">0</span></button><button data-f="done">완료</button></div>
+  <div id="list"></div>
+  <p class="sub" style="margin-top:16px;line-height:1.7">· <b>접수</b>를 누르면 충전금에서 수수료가 빠지고 손님 전화번호가 열려요.<br>· 못 가는 요청은 <b>넘기기</b>를 누르면 수수료가 빠지지 않아요.<br>· 화면은 10초마다 저절로 새로고침돼요. 충전 문의: 동네배달 운영자</p>
+  <button id="out" class="b-gray" style="width:100%;margin-top:8px">나가기</button>
+</div>
+</main>
+<script>
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const won = (n) => (n || 0).toLocaleString("ko-KR") + "원";
+let KEY = ""; try { KEY = localStorage.getItem("dn_qkey") || ""; } catch (e) {}
+let F = "new", seen = new Set(), first = true, audio = null, timer = null;
+
+async function call(path, body) {
+  const r = await fetch("/api/partner/" + path, { method: body ? "POST" : "GET", headers: { "content-type": "application/json", "x-partner-key": KEY }, body: body ? JSON.stringify(body) : undefined });
+  const d = await r.json().catch(() => ({ error: "서버 응답을 읽지 못했어요." }));
+  if (!r.ok) { const e = new Error(d.error || "오류가 났어요."); e.status = r.status; throw e; }
+  return d;
+}
+function beep() {
+  if (!audio) return;
+  const o = audio.createOscillator(), g = audio.createGain(); o.connect(g); g.connect(audio.destination);
+  o.frequency.value = 880; g.gain.value = 0.25; o.start(); setTimeout(() => { o.frequency.value = 1320; }, 180); setTimeout(() => o.stop(), 420);
+}
+async function load() {
+  let d;
+  try { d = await call("list"); }
+  catch (e) { if (e.status === 401) { logout(); $("msg").textContent = e.message; } return; }
+  $("login").style.display = "none"; $("app").style.display = "";
+  $("pname").textContent = d.name; $("fee").textContent = (d.fee || 0).toLocaleString();
+  $("bal").textContent = won(d.balance); $("bal").className = d.balance < d.fee ? "low" : "";
+  const news = d.reqs.filter(r => r.status === "new");
+  if (!first && news.some(r => !seen.has(r.id))) { beep(); if (navigator.vibrate) navigator.vibrate([200, 100, 200]); }
+  news.forEach(r => seen.add(r.id)); first = false;
+  $("cNew").textContent = news.length; $("cAcc").textContent = d.reqs.filter(r => r.status === "accepted").length;
+  const list = d.reqs.filter(r => r.status === F);
+  $("list").innerHTML = list.length ? list.map(r => `
+    <div class="card ${r.status === "new" ? "new" : ""}">
+      <div style="display:flex;justify-content:space-between;gap:8px"><div class="route">${esc(r.from)}<br>→ ${esc(r.to)}</div><div class="sub" style="white-space:nowrap">${new Date(r.createdAt).toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" })}</div></div>
+      <div class="meta">${r.item ? "📦 " + esc(r.item) + "<br>" : ""}${r.memo ? "💬 " + esc(r.memo) + "<br>" : ""}📞 ${esc(r.phone)}</div>
+      ${r.status === "new" ? `<div class="row"><button class="b-go" data-a="accept" data-id="${esc(r.id)}">✅ 접수 (−${won(d.fee)})</button><button class="b-gray" data-a="skip" data-id="${esc(r.id)}" style="flex:0 0 90px">넘기기</button></div>` : ""}
+      ${r.status === "accepted" ? `<a class="call" href="tel:${esc(r.phone.replace(/[^0-9]/g, ""))}">📞 손님에게 전화</a><button class="b-dark" data-a="done" data-id="${esc(r.id)}" style="width:100%;margin-top:8px">배달 완료</button>` : ""}
+    </div>`).join("") : '<div class="card sub" style="text-align:center">요청이 없어요</div>';
+}
+$("list").addEventListener("click", async e => {
+  const b = e.target.closest("[data-a]"); if (!b) return;
+  if (b.dataset.a === "skip" && !confirm("이 요청을 넘길까요? (수수료 없음)")) return;
+  b.disabled = true;
+  try { await call(b.dataset.a, { id: b.dataset.id }); if (b.dataset.a === "accept") { F = "accepted"; setTab(); } }
+  catch (err) { alert(err.message); }
+  load();
+});
+function setTab() { document.querySelectorAll(".tabs button").forEach(x => x.classList.toggle("on", x.dataset.f === F)); }
+document.querySelectorAll(".tabs button").forEach(b => b.onclick = () => { F = b.dataset.f; setTab(); load(); });
+$("sound").onclick = () => { try { audio = audio || new (window.AudioContext || window.webkitAudioContext)(); audio.resume(); beep(); $("sound").textContent = "🔔 알림 소리 켜짐"; $("sound").className = "b-gray"; } catch (e) {} };
+$("go").onclick = () => { KEY = $("key").value.replace(/[^A-Za-z0-9]/g, "").toUpperCase(); try { localStorage.setItem("dn_qkey", KEY); } catch (e) {} $("msg").textContent = ""; start(); };
+function logout() { KEY = ""; try { localStorage.removeItem("dn_qkey"); } catch (e) {} clearInterval(timer); $("app").style.display = "none"; $("login").style.display = ""; }
+$("out").onclick = logout;
+function start() { clearInterval(timer); first = true; seen = new Set(); load(); timer = setInterval(load, 10000); }
+if (KEY) start();
+</script>
+</body></html>

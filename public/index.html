@@ -25,7 +25,7 @@
 <div class="mx-auto max-w-[520px] bg-white min-h-screen flex flex-col shadow">
 
 <header class="sticky top-0 z-20 bg-white border-b px-4 h-[56px] flex items-center justify-between gap-2 whitespace-nowrap">
-  <div class="flex items-center gap-2"><div class="w-7 h-7 rounded-full bg-[#00C73C] text-white grid place-items-center font-black text-[13px]">동</div><b class="text-[15px]">동네배달</b><span class="text-[11px] px-1.5 py-0.5 rounded-full bg-[#F1F8F2] text-[#00A832] ml-1 max-[380px]:hidden">둔산동</span></div>
+  <div class="flex items-center gap-2"><div class="w-7 h-7 rounded-full bg-[#00C73C] text-white grid place-items-center font-black text-[13px]">동</div><span class="leading-tight"><b class="text-[15px] block">동네배달</b><span class="text-[10px] text-[#888] block -mt-0.5">우리 동네 생활지도</span></span><span class="text-[11px] px-1.5 py-0.5 rounded-full bg-[#F1F8F2] text-[#00A832] ml-1 max-[380px]:hidden">둔산동</span></div>
   <div class="flex items-center gap-1.5">
     <button id="cpBtn" type="button" class="h-[30px] px-2.5 rounded-full bg-[#E52528] text-white text-[12px] font-bold whitespace-nowrap shadow-sm">🛒 쿠팡 바로가기</button>
     <button id="shareBtn" class="text-[12px] border rounded-full px-2.5 h-[30px] whitespace-nowrap">공유</button>
@@ -44,6 +44,26 @@
       <button id="qrSave" type="button" class="h-[46px] rounded-[12px] bg-[#00C73C] text-white font-bold text-[13px]">⬇️ QR 저장</button>
     </div>
     <button id="qrClose" type="button" class="mt-2 w-full h-[40px] text-[13px] text-[#888]">닫기</button>
+  </div>
+</div>
+
+<!-- 퀵 요청 창 -->
+<div id="qkModal" class="hidden fixed inset-0 z-50 bg-black/50 flex items-end sm:items-center justify-center">
+  <div class="bg-white w-full max-w-[520px] max-h-[92vh] overflow-y-auto rounded-t-[18px] sm:rounded-[18px] p-5">
+    <div class="flex justify-between items-center"><h3 class="font-extrabold text-[17px]">🛵 퀵 요청하기</h3><button id="qkClose" type="button" class="text-[22px] px-2">✕</button></div>
+    <p class="text-[12px] text-[#666] mt-1">요청을 보내면 <b id="qkName">제휴 퀵</b> 기사님이 확인하고 전화드려요. 요금은 거리에 따라 전화로 안내받으세요.</p>
+    <form id="qkForm" class="mt-3 space-y-2 text-[14px]">
+      <div><label class="text-[12px] font-bold ml-1">어디서 (출발지) *</label><input id="qk_from" maxlength="80" placeholder="예: 둔산꽃집 (둔산동 123)" class="w-full h-[46px] px-3 mt-1 rounded-[10px] border" required></div>
+      <div><label class="text-[12px] font-bold ml-1">어디로 (도착지) *</label><input id="qk_to" maxlength="80" placeholder="예: 둔산동 크로바아파트 101동" class="w-full h-[46px] px-3 mt-1 rounded-[10px] border" required></div>
+      <div class="grid grid-cols-2 gap-2">
+        <div><label class="text-[12px] font-bold ml-1">물건</label><input id="qk_item" maxlength="60" placeholder="예: 꽃다발 1개" class="w-full h-[46px] px-3 mt-1 rounded-[10px] border"></div>
+        <div><label class="text-[12px] font-bold ml-1">내 연락처 *</label><input id="qk_phone" maxlength="20" inputmode="tel" placeholder="010-0000-0000" class="w-full h-[46px] px-3 mt-1 rounded-[10px] border" required></div>
+      </div>
+      <div><label class="text-[12px] font-bold ml-1">요청사항</label><input id="qk_memo" maxlength="120" placeholder="예: 오후 3시까지, 문 앞에 놔 주세요" class="w-full h-[46px] px-3 mt-1 rounded-[10px] border"></div>
+      <label class="flex gap-2 items-start text-[11.5px] text-[#444] bg-[#F7F7F7] rounded-[10px] p-3"><input id="qk_agree" type="checkbox" class="mt-0.5 w-4 h-4" required><span><b>연락처 제공 동의 (필수)</b><br>배달을 위해 요청 내용과 연락처를 제휴 퀵 업체에 전달합니다. 배달이 끝나면 3일 뒤 화면에서 사라지고, 기록은 정산 확인용으로만 보관합니다.</span></label>
+      <button id="qkBtn" type="submit" class="w-full h-[52px] rounded-[12px] bg-black text-white font-bold text-[15px]">🛵 퀵 요청 보내기</button>
+      <div id="qkMsg" class="text-center text-[13px] min-h-[1em]"></div>
+    </form>
   </div>
 </div>
 
@@ -71,7 +91,12 @@
     <div id="chips" class="hide-scroll flex gap-2 overflow-x-auto mt-4 pb-1"></div>
 
     <div id="map" class="border mt-3"></div>
-    <div class="text-[11px] text-[#999] mt-2 text-center">주황 핀을 누르면 가게 정보와 주문 버튼이 나와요</div>
+    <div class="text-[11px] text-[#999] mt-2 text-center">핀을 누르면 가게 정보와 주문·전화 버튼이 나와요</div>
+    <button id="quickBanner" type="button" class="hidden mt-4 w-full rounded-[16px] p-4 text-left bg-gradient-to-r from-[#FFF4D6] to-[#FFE3A3] border border-[#FFD36B] flex items-center gap-3">
+      <span class="text-[34px]">🛵</span>
+      <span class="flex-1 min-w-0"><b class="block text-[15px]">동네 퀵 부르기</b><span class="block text-[12px] text-[#555]">꽃·반찬·서류·물건, 동네 어디든 바로 배달</span></span>
+      <span class="shrink-0 text-[12px] font-bold px-3 py-2 rounded-full bg-black text-white">요청하기</span>
+    </button>
     <div id="store-list" class="mt-4 grid grid-cols-1 gap-3 min-w-0"></div>
 
     <p class="text-[10px] text-[#aaa] mt-5 px-1 leading-4">이 사이트는 쿠팡 파트너스 활동의 일환으로, 이에 따른 일정액의 수수료를 제공받습니다.</p>
@@ -84,13 +109,14 @@
   <form id="regForm" class="mt-5 space-y-3">
     <div><label class="text-[12px] font-bold ml-1">가게 이름 *</label><input id="f_name" maxlength="40" placeholder="예: 둔산 할매닭발" class="w-full h-[48px] px-4 mt-1 rounded-[12px] border text-[14px] focus:border-[#00C73C] outline-none" required></div>
     <div><label class="text-[12px] font-bold ml-1">카테고리 *</label><select id="f_cat" class="w-full h-[48px] px-4 mt-1 rounded-[12px] border text-[14px]" required><option value="">선택하세요</option></select></div>
-    <div><label class="text-[12px] font-bold ml-1">대표 메뉴 & 가격 *</label><input id="f_menu" maxlength="80" placeholder="예: 후라이드 19,000원, 양념 21,000원" class="w-full h-[48px] px-4 mt-1 rounded-[12px] border text-[14px]" required></div>
-    <div><label class="text-[12px] font-bold ml-1">쿠팡이츠/배민 가게 링크 *</label><input id="f_link" maxlength="400" placeholder="https://... 붙여넣기" class="w-full h-[48px] px-4 mt-1 rounded-[12px] border text-[14px]" required><div class="text-[10px] text-[#00A832] ml-1 mt-1">* 손님이 이 링크로 바로 우리 가게 주문 화면에 들어가요</div></div>
-    <div class="grid grid-cols-2 gap-3"><div><label class="text-[12px] font-bold ml-1">전화번호 *</label><input id="f_phone" maxlength="20" inputmode="tel" placeholder="010-1234-5678" class="w-full h-[48px] px-3 mt-1 rounded-[12px] border text-[14px]" required></div><div><label class="text-[12px] font-bold ml-1">주소 *</label><input id="f_addr" maxlength="80" placeholder="둔산동 123" class="w-full h-[48px] px-3 mt-1 rounded-[12px] border text-[14px]" required></div></div>
+    <div><label class="text-[12px] font-bold ml-1">대표 메뉴·상품 & 가격 *</label><input id="f_menu" maxlength="80" placeholder="예: 후라이드 19,000원 / 커트 15,000원 / 24시 영업" class="w-full h-[48px] px-4 mt-1 rounded-[12px] border text-[14px]" required></div>
+    <div><label class="text-[12px] font-bold ml-1">쿠팡이츠/배민 가게 링크 <span class="font-normal text-[#999]">(있으면)</span></label><input id="f_link" maxlength="400" placeholder="https://... 붙여넣기 · 없으면 비워 두세요" class="w-full h-[48px] px-4 mt-1 rounded-[12px] border text-[14px]"><div class="text-[10px] text-[#00A832] ml-1 mt-1">* 링크가 있으면 손님이 바로 주문 화면으로, 없으면 전화 버튼으로 연결돼요</div></div>
+    <div class="grid grid-cols-2 gap-3"><div><label class="text-[12px] font-bold ml-1">가게 전화번호 *</label><input id="f_phone" maxlength="20" inputmode="tel" placeholder="010-1234-5678" class="w-full h-[48px] px-3 mt-1 rounded-[12px] border text-[14px]" required></div><div><label class="text-[12px] font-bold ml-1">주소 *</label><input id="f_addr" maxlength="80" placeholder="둔산동 123" class="w-full h-[48px] px-3 mt-1 rounded-[12px] border text-[14px]" required></div></div>
+    <label class="flex gap-2 items-start text-[13px] bg-[#F1F8F2] rounded-[12px] p-3"><input id="f_showTel" type="checkbox" class="mt-0.5 w-4 h-4"><span><b>📞 손님 전화 받기</b><br><span class="text-[11px] text-[#555]">체크하면 손님 화면에 '전화하기' 버튼이 생겨 누르면 바로 연결돼요. 주문 링크가 없는 가게는 꼭 체크해 주세요.</span></span></label>
     <div><label class="text-[12px] font-bold ml-1">한줄 소개</label><textarea id="f_intro" maxlength="120" placeholder="예: 20년 전통, 매운맛 조절 가능, 배달 30분!" class="w-full h-[80px] p-4 mt-1 rounded-[12px] border text-[14px]"></textarea></div>
     <label class="flex gap-2 items-start text-[12px] text-[#444] bg-[#F7F7F7] rounded-[12px] p-3">
       <input id="f_agree" type="checkbox" class="mt-0.5 w-4 h-4" required>
-      <span><b>개인정보 수집·이용 동의 (필수)</b><br>가게 등록 확인과 연락을 위해 전화번호·주소를 받습니다. 가게 정보가 지도에서 내려가면 지체 없이 삭제합니다. <a href="/privacy.html" target="_blank" class="underline">자세히 보기</a></span>
+      <span><b>개인정보 수집·이용 동의 (필수)</b><br>가게 등록 확인과 연락을 위해 전화번호·주소를 받습니다. '손님 전화 받기'를 체크한 경우에만 전화번호가 손님에게 공개됩니다. 가게 정보가 지도에서 내려가면 지체 없이 삭제합니다. <a href="/privacy.html" target="_blank" class="underline">자세히 보기</a></span>
     </label>
     <button type="submit" id="regBtn" class="w-full h-[54px] rounded-[14px] bg-[#00C73C] text-white font-bold text-[16px] shadow-lg shadow-green-200 mt-2">✅ 등록 신청하기</button>
     <div id="regMsg" class="text-center text-[12px] mt-2 min-h-[1em]"></div>
@@ -107,6 +133,8 @@
     <div id="pending-list" class="mt-3 grid gap-3"></div>
     <h3 class="mt-8 font-bold text-[14px]">✅ 노출 중인 가게</h3>
     <div id="approved-list" class="mt-3 grid gap-3"></div>
+    <h3 class="mt-8 font-bold text-[14px]">🛵 퀵 제휴 (충전금)</h3>
+    <div id="quick-admin" class="mt-3 rounded-[14px] border p-4 bg-[#FFFBEF] text-[12px]"></div>
     <div class="mt-6 p-3 bg-[#FFF3E0] rounded-xl text-[11px] text-[#E65100] leading-5">💡 <b>광고 켜기</b>를 누른 가게가 맨 위 광고 자리에 4.5초씩 번갈아 나와요. 지도에 핀이 없는 가게는 <b>수정 → 지도에서 위치 누르기</b>로 위치를 정해 주세요.</div>
     <button id="logoutBtn" class="mt-4 w-full h-[44px] border rounded-[12px] text-[13px]">관리 화면 나가기</button>
   </div>
@@ -132,10 +160,10 @@
       <input id="e_name" maxlength="40" placeholder="가게 이름" class="w-full h-[44px] px-3 rounded-[10px] border">
       <select id="e_cat" class="w-full h-[44px] px-3 rounded-[10px] border"></select>
       <input id="e_menu" maxlength="80" placeholder="대표 메뉴 & 가격" class="w-full h-[44px] px-3 rounded-[10px] border">
-      <input id="e_link" maxlength="400" placeholder="https:// 주문 링크" class="w-full h-[44px] px-3 rounded-[10px] border">
+      <input id="e_link" maxlength="400" placeholder="https:// 주문 링크 (없으면 비워 두기)" class="w-full h-[44px] px-3 rounded-[10px] border">
       <div class="grid grid-cols-2 gap-2"><input id="e_phone" maxlength="20" placeholder="전화번호" class="h-[44px] px-3 rounded-[10px] border"><input id="e_addr" maxlength="80" placeholder="주소" class="h-[44px] px-3 rounded-[10px] border"></div>
       <textarea id="e_intro" maxlength="120" placeholder="한줄 소개" class="w-full h-[64px] p-3 rounded-[10px] border"></textarea>
-      <div class="flex gap-4 text-[13px]"><label class="flex items-center gap-1.5"><input id="e_ad" type="checkbox" class="w-4 h-4"> 광고 자리에 노출</label><label class="flex items-center gap-1.5"><input id="e_example" type="checkbox" class="w-4 h-4"> 예시 가게</label></div>
+      <div class="flex flex-wrap gap-x-4 gap-y-2 text-[13px]"><label class="flex items-center gap-1.5"><input id="e_showTel" type="checkbox" class="w-4 h-4"> 📞 손님 전화 공개</label><label class="flex items-center gap-1.5"><input id="e_ad" type="checkbox" class="w-4 h-4"> 광고 자리에 노출</label><label class="flex items-center gap-1.5"><input id="e_example" type="checkbox" class="w-4 h-4"> 예시 가게</label></div>
       <div class="flex items-center justify-between mt-2"><div class="text-[12px] font-bold">📍 가게 위치 <span id="e_pos" class="font-normal text-[#999]"></span></div><button id="e_find" type="button" class="text-[12px] font-bold px-3 h-[32px] rounded-[8px] bg-[#23242B] text-white">🔎 주소로 찾기</button></div>
       <div id="e_geoMsg" class="text-[11px] text-[#666] min-h-[1em]"></div>
       <div id="pickMap" class="border"></div>
@@ -147,14 +175,26 @@
 </div>
 
 <script>
-const CATS = ["치킨","한식","분식","카페","중식","일식","피자","야식","디저트","기타"];
-const EMOJI = {치킨:"🍗",한식:"🍚",분식:"🍢",카페:"☕",중식:"🥟",일식:"🍣",피자:"🍕",야식:"🌶️",디저트:"🍰",기타:"🍱"};
+const CATS = ["치킨","한식","분식","카페","중식","일식","피자","야식","디저트","반찬","편의점","약국","꽃집","미용실","세탁소","생활","기타"];
+const EMOJI = {치킨:"🍗",한식:"🍚",분식:"🍢",카페:"☕",중식:"🥟",일식:"🍣",피자:"🍕",야식:"🌶️",디저트:"🍰",반찬:"🥢",편의점:"🏪",약국:"💊",꽃집:"💐",미용실:"💇",세탁소:"👕",생활:"🛠️",기타:"📍"};
 const CENTER = [36.3504, 127.3845];
 const CONTACT = "010-9472-5785";
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const safeLink = (u) => /^https:\/\//i.test(u || "") ? u : "#";
-let STORES = [], filter = "전체", map = null, markers = null;
+const telHref = (t) => "tel:" + String(t || "").replace(/[^0-9+]/g, "");
+// 가게 버튼: 주문 링크가 있으면 주문하기, 없으면 전화하기 (둘 다 있으면 둘 다)
+function actions(s) {
+  const a = [];
+  if (/^https:\/\//i.test(s.link || "")) a.push({ href: safeLink(s.link), label: s.example ? "쿠팡이츠 열기" : "주문하기 →", ext: true });
+  if (s.tel) a.push({ href: telHref(s.tel), label: "📞 전화하기", ext: false, call: true });
+  if (QUICK.on && !s.example && !/^https:\/\//i.test(s.link || "")) a.push({ quick: true, label: "🛵 퀵" });
+  return a;
+}
+function btnHtml(s, cls, callCls) {
+  return actions(s).map(b => b.quick ? `<button type="button" data-quick="${esc(s.id)}" class="${cls.replace("bg-black", "bg-[#FFB300]").replace("text-white", "text-black")}">${b.label}</button>` : `<a href="${esc(b.href)}" ${b.ext ? 'target="_blank" rel="noopener"' : ""} data-click="${esc(s.id)}" class="${b.call ? callCls : cls}">${b.label}</a>`).join("");
+}
+let STORES = [], filter = "전체", map = null, markers = null, QUICK = { on: false, name: "" };
 
 async function api(path, body, admin) {
   const headers = { "content-type": "application/json" };
@@ -225,7 +265,7 @@ function renderAds() {
           <div class="font-black text-[19px] truncate">${esc(s.name)}</div>
           <div class="text-[12px] text-[#333] truncate">${esc(s.menu)}</div>
           ${s.intro ? `<div class="text-[11px] text-[#666] truncate">${esc(s.intro)}</div>` : ""}
-          <a href="${esc(safeLink(s.link))}" target="_blank" rel="noopener" data-click="${esc(s.id)}" class="inline-block mt-2 text-[12px] font-bold px-3 py-1.5 rounded-full bg-black text-white">주문하기 →</a>
+          <div class="mt-2 flex gap-1.5">${btnHtml(s, "inline-block text-[12px] font-bold px-3 py-1.5 rounded-full bg-black text-white", "inline-block text-[12px] font-bold px-3 py-1.5 rounded-full bg-[#00C73C] text-white")}</div>
         </div>
       </div>
     </div>`);
@@ -266,7 +306,7 @@ function popupHtml(s) {
     <div style="font-weight:800;font-size:13px">${esc(s.name)}${s.example ? ' <span style="font-size:10px;background:#9E9E9E;color:#fff;padding:1px 5px;border-radius:9px">예시</span>' : ""}</div>
     <div style="font-size:11px;color:#777;margin-top:2px">${esc(s.cat)} · ${esc(s.addr)}</div>
     <div style="margin-top:6px;font-size:11px;color:#444;background:#F9FAFB;padding:6px 8px;border-radius:8px">🍽️ ${esc(s.menu)}</div>
-    <a href="${esc(safeLink(s.link))}" target="_blank" rel="noopener" data-click="${esc(s.id)}" style="display:block;margin-top:8px;background:black;color:white;text-align:center;padding:8px;border-radius:999px;font-size:11px;font-weight:700;text-decoration:none">${s.example ? "쿠팡이츠 열기" : "주문하기 →"}</a></div>`;
+    ${actions(s).map(b => b.quick ? `<button type="button" data-quick="${esc(s.id)}" style="display:block;width:100%;margin-top:6px;background:#FFB300;color:#111;text-align:center;padding:8px;border-radius:999px;font-size:12px;font-weight:700;border:0">🛵 퀵으로 받기</button>` : `<a href="${esc(b.href)}" ${b.ext ? 'target="_blank" rel="noopener"' : ""} data-click="${esc(s.id)}" style="display:block;margin-top:6px;background:${b.call ? "#00C73C" : "black"};color:white;text-align:center;padding:8px;border-radius:999px;font-size:12px;font-weight:700;text-decoration:none">${b.label}</a>`).join("")}</div>`;
 }
 const pinIcon = (ad) => L.divIcon({ className: "", html: `<div style="width:30px;height:38px;background:${ad ? "#E53935" : "#FF6A00"};clip-path:polygon(50% 100%,0 0,100% 0);border-radius:4px 4px 0 0;display:grid;place-items:center;font-size:13px;padding-bottom:10px">${ad ? "⭐" : "📍"}</div>`, iconSize: [30, 38], iconAnchor: [15, 38], popupAnchor: [0, -34] });
 function visible(){ return STORES.filter(s => filter === "전체" || s.cat === filter); }
@@ -275,7 +315,7 @@ function renderMap() {
     map = L.map("map").setView(CENTER, 15);
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { attribution: "© OpenStreetMap" }).addTo(map);
     markers = L.layerGroup().addTo(map);
-    map.on("popupopen", e => { const a = e.popup.getElement().querySelector("[data-click]"); if (a) a.addEventListener("click", () => track(a.dataset.click), { once: true }); });
+    map.on("popupopen", e => { const el = e.popup.getElement(); el.querySelectorAll("[data-click]").forEach(a => a.addEventListener("click", () => track(a.dataset.click), { once: true })); el.querySelectorAll("[data-quick]").forEach(b => b.addEventListener("click", ev => { ev.stopPropagation(); track(b.dataset.quick); openQuick(STORES.find(s => s.id === b.dataset.quick)); })); });
   }
   markers.clearLayers();
   visible().filter(s => typeof s.lat === "number" && typeof s.lng === "number")
@@ -295,11 +335,13 @@ function renderList() {
       <div class="flex-1 min-w-0"><div class="font-bold text-[14px] truncate">${esc(s.name)}${badge} <span class="text-[11px] font-medium text-[#777]">· ${esc(s.cat)}</span></div>
       <div class="text-[12px] text-[#444] mt-1 truncate">${esc(s.menu)}</div>
       <div class="text-[11px] text-[#999] mt-1 truncate">${esc(s.addr)}${s.intro ? " · " + esc(s.intro) : ""}</div>
-      <div class="mt-2 flex items-center gap-2"><a href="${esc(safeLink(s.link))}" target="_blank" rel="noopener" data-click="${esc(s.id)}" class="inline-block text-[11px] font-bold px-3 py-1.5 rounded-full bg-black text-white">${s.example ? "쿠팡이츠 열기" : "주문하기"}</a>${s.example ? '<span class="text-[10px] text-[#aaa]">예시 가게예요</span>' : ""}</div></div></div>`;
+      <div class="mt-2 flex items-center gap-2">${btnHtml(s, "inline-block text-[11px] font-bold px-3 py-1.5 rounded-full bg-black text-white", "inline-block text-[11px] font-bold px-3 py-1.5 rounded-full bg-[#00C73C] text-white")}${s.example ? '<span class="text-[10px] text-[#aaa]">예시 가게예요</span>' : ""}</div></div></div>`;
   }).join("") : '<div class="text-[12px] text-[#999] py-8 text-center border border-dashed rounded-xl">이 종류의 가게가 아직 없어요</div>';
 }
 $("store-list").addEventListener("click", e => { const a = e.target.closest("[data-click]"); if (a) track(a.dataset.click); });
 async function loadHome() {
+  try { QUICK = await api("quick/info"); } catch (e) { QUICK = { on: false, name: "" }; }
+  $("quickBanner").classList.toggle("hidden", !QUICK.on);
   try { STORES = (await api("stores")).stores || []; }
   catch (e) { $("store-list").innerHTML = `<div class="text-[12px] text-red-600 text-center py-6">${esc(e.message)}</div>`; STORES = []; }
   renderAds(); renderChips(); renderList();
@@ -319,7 +361,8 @@ document.querySelectorAll(".navb").forEach(b => b.onclick = () => showTab(b.data
 // ── 가게 등록 신청 ──
 $("regForm").addEventListener("submit", async e => {
   e.preventDefault();
-  const body = { name: $("f_name").value, cat: $("f_cat").value, menu: $("f_menu").value, link: $("f_link").value.trim(), phone: $("f_phone").value, addr: $("f_addr").value, intro: $("f_intro").value, agree: $("f_agree").checked };
+  const body = { name: $("f_name").value, cat: $("f_cat").value, menu: $("f_menu").value, link: $("f_link").value.trim(), phone: $("f_phone").value, showTel: $("f_showTel").checked, addr: $("f_addr").value, intro: $("f_intro").value, agree: $("f_agree").checked };
+  if (!body.link && !body.showTel) { $("regMsg").className = "text-center text-[12px] mt-2 text-red-600"; $("regMsg").textContent = "주문 링크가 없으면 '📞 손님 전화 받기'를 체크해 주세요."; return; }
   $("regBtn").disabled = true; $("regMsg").className = "text-center text-[12px] mt-2"; $("regMsg").textContent = "보내는 중…";
   try {
     await api("apply", body);
@@ -345,18 +388,18 @@ async function loadAdmin() {
   $("lockMsg").textContent = "";
   try { ADMIN = await api("admin/list", null, true); }
   catch (e) { if (e.status === 401) sessionStorage.removeItem("dn_pw"); $("lockMsg").textContent = e.message; $("admin-content").classList.add("hidden"); $("admin-lock").classList.remove("hidden"); return; }
-  $("admin-lock").classList.add("hidden"); $("admin-content").classList.remove("hidden");
+  $("admin-lock").classList.add("hidden"); $("admin-content").classList.remove("hidden"); loadQuickAdmin();
   const { stores, pending, clicks } = ADMIN;
   $("cnt-pending").textContent = pending.length; $("cnt-approved").textContent = stores.length; $("cnt-ad").textContent = stores.filter(s => s.ad && !s.example).length;
   $("pending-list").innerHTML = pending.length ? pending.map(s => `
     <div class="rounded-[14px] border p-4 bg-white"><div class="flex justify-between"><div class="font-bold text-[14px]">${esc(s.name)} <span class="text-[11px] px-2 py-0.5 bg-[#FFF3E0] text-[#FF6A00] rounded-full">${esc(s.cat)}</span></div><span class="text-[10px] text-[#999]">${new Date(s.createdAt).toLocaleDateString("ko-KR")}</span></div>
-    <div class="text-[12px] text-[#444] mt-2 grid gap-1"><div>📍 ${esc(s.addr)}</div><div>📞 <a href="tel:${esc(s.phone)}" class="underline">${esc(s.phone)}</a></div><div>🍽️ ${esc(s.menu)}</div><div class="truncate">🔗 <a href="${esc(safeLink(s.link))}" target="_blank" rel="noopener" class="underline text-[#00A832]">${esc(s.link)}</a></div>${s.intro ? `<div class="text-[#666]">💬 ${esc(s.intro)}</div>` : ""}</div>
+    <div class="text-[12px] text-[#444] mt-2 grid gap-1"><div>📍 ${esc(s.addr)}</div><div>📞 <a href="${esc(telHref(s.phone))}" class="underline">${esc(s.phone)}</a> ${s.showTel ? '<span class="text-[10px] text-[#00A832] font-bold">손님 공개</span>' : '<span class="text-[10px] text-[#999]">비공개</span>'}</div><div>🍽️ ${esc(s.menu)}</div><div class="truncate">🔗 ${s.link ? `<a href="${esc(safeLink(s.link))}" target="_blank" rel="noopener" class="underline text-[#00A832]">${esc(s.link)}</a>` : '<span class="text-[#999]">주문 링크 없음 (전화 연결)</span>'}</div>${s.intro ? `<div class="text-[#666]">💬 ${esc(s.intro)}</div>` : ""}</div>
     <div class="flex gap-2 mt-3"><button data-act="approve" data-id="${esc(s.id)}" class="flex-1 h-9 rounded-full bg-[#00C73C] text-white text-[12px] font-bold">✅ 확인하고 승인</button><button data-act="reject" data-id="${esc(s.id)}" class="flex-1 h-9 rounded-full bg-[#eee] text-[12px] font-bold">🗑️ 삭제</button></div></div>`).join("")
     : '<div class="text-[12px] text-[#999] py-8 text-center border border-dashed rounded-xl">대기 중인 신청이 없어요</div>';
   $("approved-list").innerHTML = stores.length ? stores.map(s => `
     <div class="rounded-[14px] border p-4 ${s.example ? "bg-[#F5F5F5]" : s.ad ? "bg-[#FFF5F5] border-[#FFCDD2]" : "bg-[#F9FFF9]"}">
       <div class="font-bold text-[13px]">${esc(s.name)} · ${esc(s.cat)} ${s.example ? '<span class="text-[10px] bg-[#9E9E9E] text-white px-1.5 py-0.5 rounded-full">예시</span>' : ""}${s.ad && !s.example ? '<span class="text-[10px] bg-[#E53935] text-white px-1.5 py-0.5 rounded-full">광고 중</span>' : ""}</div>
-      <div class="text-[11px] text-[#666] mt-1">${esc(s.addr)} · ${esc(s.phone || "")} · ${typeof s.lat === "number" ? "📍위치 있음" : '<b class="text-[#E65100]">📍위치 없음</b>'} · 주문 클릭 ${clicks[s.id] || 0}회</div>
+      <div class="text-[11px] text-[#666] mt-1">${esc(s.addr)} · ${esc(s.phone || "")}${s.showTel ? " (공개)" : ""} · ${typeof s.lat === "number" ? "📍위치 있음" : '<b class="text-[#E65100]">📍위치 없음</b>'} · 클릭 ${clicks[s.id] || 0}회</div>
       <div class="text-[11px] text-[#444] mt-1">${esc(s.menu)}</div>
       <div class="flex gap-2 mt-3"><button data-act="edit" data-id="${esc(s.id)}" class="flex-1 h-8 rounded-full bg-white border text-[11px] font-bold">✏️ 수정</button>${s.example ? "" : `<button data-act="ad" data-id="${esc(s.id)}" class="flex-1 h-8 rounded-full ${s.ad ? "bg-[#E53935] text-white" : "bg-white border"} text-[11px] font-bold">${s.ad ? "광고 끄기" : "⭐ 광고 켜기"}</button>`}<button data-act="delete" data-id="${esc(s.id)}" class="flex-1 h-8 rounded-full bg-[#FFEBEE] text-[#D32F2F] text-[11px] font-bold">🗑️ 삭제</button></div></div>`).join("")
     : '<div class="text-[11px] text-[#999] py-4 text-center">노출 중인 가게가 없어요</div>';
@@ -389,7 +432,7 @@ function openEdit(s, mode) {
   $("editSave").textContent = mode === "approve" ? "승인하고 지도에 올리기" : "저장";
   ["name","menu","link","phone","addr","intro"].forEach(k => $("e_" + k).value = s[k] || "");
   $("e_cat").value = CATS.includes(s.cat) ? s.cat : "기타";
-  $("e_ad").checked = !!s.ad; $("e_example").checked = !!s.example; $("editMsg").textContent = "";
+  $("e_ad").checked = !!s.ad; $("e_showTel").checked = !!s.showTel; $("e_example").checked = !!s.example; $("editMsg").textContent = "";
   noPosWarned = false; $("editModal").classList.remove("hidden");
   setTimeout(() => {
     if (!pickMap) {
@@ -426,7 +469,7 @@ $("editClose").onclick = () => $("editModal").classList.add("hidden");
 $("editSave").onclick = async () => {
   if (!pickPos && !noPosWarned) { noPosWarned = true; $("editMsg").textContent = "위치가 아직 없어요! 지도에 핀이 안 나와요. 그래도 저장하려면 한 번 더 누르세요."; return; }
   noPosWarned = false;
-  const body = { id: editCtx.id, name: $("e_name").value, cat: $("e_cat").value, menu: $("e_menu").value, link: $("e_link").value.trim(), phone: $("e_phone").value, addr: $("e_addr").value, intro: $("e_intro").value, ad: $("e_ad").checked, example: $("e_example").checked, lat: pickPos ? pickPos.lat : null, lng: pickPos ? pickPos.lng : null };
+  const body = { id: editCtx.id, name: $("e_name").value, cat: $("e_cat").value, menu: $("e_menu").value, link: $("e_link").value.trim(), phone: $("e_phone").value, showTel: $("e_showTel").checked, addr: $("e_addr").value, intro: $("e_intro").value, ad: $("e_ad").checked, example: $("e_example").checked, lat: pickPos ? pickPos.lat : null, lng: pickPos ? pickPos.lng : null };
   try {
     await api(editCtx.mode === "approve" ? "admin/approve" : "admin/update", body, true);
     $("editModal").classList.add("hidden");
@@ -439,6 +482,59 @@ $("cpBtn").onclick = () => $("cpModal").classList.remove("hidden");
 $("cpClose").onclick = () => $("cpModal").classList.add("hidden");
 $("cpGo").addEventListener("click", () => { track("coupang"); setTimeout(() => $("cpModal").classList.add("hidden"), 300); });
 $("cpModal").addEventListener("click", (e) => { if (e.target.id === "cpModal") $("cpModal").classList.add("hidden"); });
+
+// ── 🛵 퀵 요청 ──
+function openQuick(store) {
+  $("qkForm").reset(); $("qkMsg").textContent = ""; $("qkBtn").disabled = false;
+  $("qkName").textContent = QUICK.name || "제휴 퀵";
+  $("qk_from").value = store ? `${store.name} (${store.addr || ""})` : "";
+  $("qkForm").dataset.store = store ? store.id : "";
+  $("qkModal").classList.remove("hidden");
+}
+$("quickBanner").onclick = () => openQuick(null);
+document.addEventListener("click", e => { const b = e.target.closest("[data-quick]"); if (b) { track(b.dataset.quick); openQuick(STORES.find(s => s.id === b.dataset.quick)); } });
+$("qkClose").onclick = () => $("qkModal").classList.add("hidden");
+$("qkForm").addEventListener("submit", async e => {
+  e.preventDefault();
+  const st = STORES.find(s => s.id === $("qkForm").dataset.store);
+  const body = { from: $("qk_from").value, to: $("qk_to").value, item: $("qk_item").value, phone: $("qk_phone").value, memo: $("qk_memo").value, agree: $("qk_agree").checked, storeId: st ? st.id : "", storeName: st ? st.name : "" };
+  $("qkBtn").disabled = true; $("qkMsg").className = "text-center text-[13px] text-[#666]"; $("qkMsg").textContent = "보내는 중…";
+  try {
+    await api("quick/request", body);
+    $("qkMsg").className = "text-center text-[14px] font-bold text-[#00A832]";
+    $("qkMsg").textContent = "요청이 접수됐어요! 기사님이 곧 전화드려요 🛵";
+    setTimeout(() => $("qkModal").classList.add("hidden"), 2500);
+  } catch (err) { $("qkMsg").className = "text-center text-[13px] text-red-600"; $("qkMsg").textContent = err.message; $("qkBtn").disabled = false; }
+});
+
+// ── 관리: 퀵 제휴 ──
+const won = (n) => (n || 0).toLocaleString("ko-KR") + "원";
+const QST = { new: ["대기", "#FF6A00"], accepted: ["접수(차감)", "#1E88E5"], done: ["완료", "#00A832"], skipped: ["업체 넘김", "#999"], refunded: ["환불됨", "#999"] };
+async function loadQuickAdmin() {
+  let d; try { d = await api("admin/quick", null, true); } catch (e) { $("quick-admin").textContent = e.message; return; }
+  const c = d.cfg, link = location.origin + "/quick.html";
+  $("quick-admin").innerHTML = `
+    <div class="flex items-center justify-between"><div class="text-[13px]">남은 충전금 <b class="text-[20px] ${d.balance < c.fee ? "text-red-600" : ""}">${won(d.balance)}</b></div>
+      <label class="flex items-center gap-1.5 font-bold"><input id="qa_on" type="checkbox" class="w-4 h-4" ${c.on ? "checked" : ""}> 손님 화면에 퀵 켜기</label></div>
+    <div class="grid grid-cols-2 gap-2 mt-3"><input id="qa_name" maxlength="30" value="${esc(c.name)}" placeholder="퀵 업체 이름" class="h-[40px] px-3 rounded-[10px] border bg-white"><div class="flex items-center gap-1"><input id="qa_fee" type="number" min="0" value="${c.fee}" class="h-[40px] w-full px-3 rounded-[10px] border bg-white"><span class="shrink-0">원/건</span></div></div>
+    <button data-qa="save" class="mt-2 w-full h-[38px] rounded-[10px] bg-black text-white font-bold">설정 저장</button>
+    <div class="mt-3 p-3 rounded-[10px] bg-white border leading-6">업체 화면 주소: <b class="break-all">${esc(link)}</b><br>업체 접속 코드: <b class="text-[16px] tracking-widest">${esc(c.key || "(저장하면 생겨요)")}</b> <button data-qa="newkey" class="ml-1 underline text-[#999]">코드 새로 만들기</button></div>
+    <div class="mt-3 flex gap-2"><input id="qa_amt" type="number" placeholder="충전 금액 (빼려면 -)" class="h-[40px] flex-1 min-w-0 px-3 rounded-[10px] border bg-white"><input id="qa_memo" maxlength="60" placeholder="메모 (입금자 등)" class="h-[40px] flex-1 min-w-0 px-3 rounded-[10px] border bg-white"><button data-qa="charge" class="shrink-0 h-[40px] px-3 rounded-[10px] bg-[#00C73C] text-white font-bold">충전</button></div>
+    <div class="mt-4 font-bold">최근 퀵 요청</div>
+    <div class="mt-2 grid gap-2">${d.reqs.length ? d.reqs.slice(0, 30).map(r => `<div class="rounded-[10px] bg-white border p-2.5"><div class="flex justify-between"><b>${esc(r.from)} → ${esc(r.to)}</b><span style="color:${(QST[r.status] || ["", "#999"])[1]}" class="font-bold shrink-0 ml-2">${(QST[r.status] || [r.status])[0]}</span></div><div class="text-[11px] text-[#777] mt-0.5">${new Date(r.createdAt).toLocaleString("ko-KR")} · ${esc(r.item || "")} · ${esc(r.phone)}${r.fee ? " · 수수료 " + won(r.fee) : ""}</div>${r.fee && !r.refunded ? `<button data-qa="refund" data-id="${esc(r.id)}" class="mt-1 text-[11px] underline text-[#999]">수수료 환불</button>` : ""}</div>`).join("") : '<div class="text-[#999]">아직 요청이 없어요</div>'}</div>
+    <div class="mt-4 font-bold">충전금 내역</div>
+    <div class="mt-2 grid gap-1">${d.ledger.length ? d.ledger.slice(0, 30).map(l => `<div class="flex justify-between bg-white rounded-[8px] px-2.5 py-1.5 border"><span class="truncate">${new Date(l.t).toLocaleDateString("ko-KR")} ${esc(l.memo || "")}</span><span class="shrink-0 ml-2 font-bold ${l.amount < 0 ? "text-red-600" : "text-[#00A832]"}">${l.amount > 0 ? "+" : ""}${won(l.amount)}</span></div>`).join("") : '<div class="text-[#999]">아직 내역이 없어요</div>'}</div>`;
+}
+$("quick-admin").addEventListener("click", async e => {
+  const b = e.target.closest("[data-qa]"); if (!b) return;
+  try {
+    if (b.dataset.qa === "save") await api("admin/quick/config", { on: $("qa_on").checked, name: $("qa_name").value, fee: $("qa_fee").value }, true);
+    if (b.dataset.qa === "newkey") { if (!confirm("코드를 바꾸면 업체가 새 코드로 다시 들어와야 해요. 바꿀까요?")) return; await api("admin/quick/config", { newKey: true }, true); }
+    if (b.dataset.qa === "charge") { await api("admin/quick/charge", { amount: $("qa_amt").value, memo: $("qa_memo").value }, true); }
+    if (b.dataset.qa === "refund") { if (!confirm("이 건의 수수료를 충전금으로 돌려줄까요?")) return; await api("admin/quick/refund", { id: b.dataset.id }, true); }
+    await loadQuickAdmin(); loadHome();
+  } catch (err) { alert(err.message); }
+});
 
 loadHome();
 </script>
