@@ -1,461 +1,624 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="ko">
 <head>
-<meta charset="utf-8">
+<meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>블로그마스타 · 사장님 가게가 검색에 나오게</title>
-<meta name="description" content="대전 블로그마스타 — 블로그 관리 대행, 쇼츠·홍보영상 제작, 홈페이지·AI 웹서비스 제작. 소상공인 가게가 검색과 유튜브에 나오도록 도와드립니다.">
-<meta property="og:title" content="블로그마스타 · 사장님 가게가 검색에 나오게">
-<meta property="og:description" content="블로그 관리 대행, 쇼츠·홍보영상 제작, 홈페이지·AI 웹서비스 제작">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Gowun+Dodum&display=swap" rel="stylesheet">
+<title>동네배달 - 우리 동네 생활지도 (둔산동)</title>
+<meta name="description" content="둔산동 맛집·편의점·꽃집·미용실을 지도에서 찾고 바로 주문·전화·퀵 배달까지. 사장님 가게 등록은 무료예요.">
+<link rel="canonical" href="https://dongnebaedal.com/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="동네배달">
+<meta property="og:url" content="https://dongnebaedal.com/">
+<meta property="og:title" content="동네배달 · 우리 동네 생활지도">
+<meta property="og:description" content="둔산동 가게를 지도에서 찾고 바로 주문·전화·퀵 배달까지!">
+<meta property="og:image" content="https://dongnebaedal.com/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:locale" content="ko_KR">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#00C73C">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" type="image/png" href="/favicon.png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-title" content="동네배달">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800;900&display=swap" rel="stylesheet">
 <style>
-:root{
-  --ink:#1E2A44;      /* 진한 남색: 글자 */
-  --sun:#FFC93C;      /* 해바라기 노랑: 간판 */
-  --sky:#EAF4FF;      /* 맑은 하늘: 바탕 면 */
-  --leaf:#2FA36B;     /* 검색 성공 초록 */
-  --paper:#FFFFFF;
-  --line:#D6E2F0;
-  --sub:#5A6680;
-}
-*{box-sizing:border-box}
-html{scroll-behavior:smooth}
-body{margin:0;font-family:"Gowun Dodum","Apple SD Gothic Neo","Malgun Gothic",sans-serif;color:var(--ink);background:var(--paper);font-size:17px;line-height:1.75;word-break:keep-all}
-a{color:inherit}
-img{max-width:100%}
-:focus-visible{outline:3px solid var(--leaf);outline-offset:3px;border-radius:4px}
-.wrap{max-width:1080px;margin:0 auto;padding:0 22px}
-.display{font-family:"Black Han Sans","Malgun Gothic",sans-serif;font-weight:400;letter-spacing:-.01em}
-
-/* 머리 */
-header{position:sticky;top:0;z-index:10;background:rgba(255,255,255,.94);backdrop-filter:blur(6px);border-bottom:1px solid var(--line)}
-.bar{display:flex;align-items:center;justify-content:space-between;height:64px}
-.logo{display:flex;align-items:center;gap:10px;text-decoration:none}
-.logo .mark{background:var(--sun);color:var(--ink);font-family:"Black Han Sans";font-size:20px;padding:2px 10px;border-radius:6px;transform:rotate(-2deg)}
-.logo .name{font-family:"Black Han Sans";font-size:22px}
-nav a{text-decoration:none;margin-left:22px;font-size:16px;color:var(--sub)}
-nav a:hover{color:var(--ink)}
-nav .call{background:var(--ink);color:#fff;padding:8px 16px;border-radius:999px}
-nav .call:hover{color:var(--sun)}
-@media (max-width:720px){nav a:not(.call){display:none}}
-
-/* 첫 화면 */
-.hero{background:var(--sky);padding:72px 0 80px;overflow:hidden}
-.hero-grid{display:grid;grid-template-columns:1.05fr 1fr;gap:48px;align-items:center}
-.hero h1{font-size:clamp(38px,5.6vw,62px);line-height:1.18;margin:0 0 20px}
-.hero p.lead{font-size:19px;color:var(--sub);margin:0 0 30px;max-width:30em}
-.btns{display:flex;gap:12px;flex-wrap:wrap}
-.btn{display:inline-block;text-decoration:none;font-size:17px;padding:13px 24px;border-radius:12px;border:2px solid var(--ink)}
-.btn.main{background:var(--sun);border-color:var(--sun);font-weight:700}
-.btn.main:hover{background:#FFB800;border-color:#FFB800}
-.btn.ghost:hover{background:#fff}
-
-/* 검색 결과 연출 */
-.search{background:#fff;border-radius:18px;padding:22px;box-shadow:0 18px 40px rgba(30,42,68,.12);border:1px solid var(--line)}
-.sbox{display:flex;align-items:center;gap:10px;border:2px solid var(--leaf);border-radius:999px;padding:11px 18px;font-size:18px}
-.sbox svg{flex:none}
-.typed{min-height:1.5em}
-.caret{display:inline-block;width:2px;height:1.1em;background:var(--ink);vertical-align:-3px;margin-left:2px;animation:blink 1s steps(1) infinite}
-@keyframes blink{50%{opacity:0}}
-.results{list-style:none;padding:0;margin:18px 0 0}
-.results li{padding:12px 6px;border-bottom:1px solid #EEF2F7;color:#9AA3B5;font-size:15px}
-.results li b{display:block;color:#7D879B;font-weight:400;font-size:16px}
-.results li.mine{color:var(--ink);background:#FFF8E1;border-radius:10px;border-bottom:none;padding:14px 12px;margin-bottom:6px;opacity:0;transform:translateY(-8px);transition:opacity .5s,transform .5s}
-.results li.mine.show{opacity:1;transform:none}
-.results li.mine b{color:var(--ink);font-family:"Black Han Sans";font-size:19px;font-weight:400}
-.results li.mine .tag{display:inline-block;background:var(--leaf);color:#fff;font-size:12px;border-radius:5px;padding:0 7px;margin-left:6px;vertical-align:2px}
-@media (max-width:860px){.hero-grid{grid-template-columns:1fr}.hero{padding:48px 0 56px}}
-
-/* 공통 섹션 */
-section.block{padding:84px 0;scroll-margin-top:120px}
-.sec-head{margin-bottom:38px}
-.sec-head h2{font-size:clamp(30px,4vw,40px);margin:0 0 8px}
-.sec-head p{color:var(--sub);margin:0;max-width:36em}
-
-/* 하는 일 */
-.services{display:grid;grid-template-columns:repeat(3,1fr);gap:0;border-top:3px solid var(--ink)}
-.svc{padding:26px 24px 30px;border-right:1px solid var(--line)}
-.svc:last-child{border-right:none}
-.svc h3{font-family:"Black Han Sans";font-weight:400;font-size:25px;margin:6px 0 10px}
-.svc .icon{width:46px;height:46px;border-radius:12px;background:var(--sky);display:grid;place-items:center}
-.svc p{margin:0 0 14px;color:var(--sub)}
-.svc ul{margin:0;padding-left:18px}
-.svc li{margin-bottom:4px}
-@media (max-width:860px){.services{grid-template-columns:1fr}.svc{border-right:none;border-bottom:1px solid var(--line)}}
-
-/* 작업 사례 */
-.works{background:var(--sky)}
-.feature{display:grid;grid-template-columns:1.1fr 1fr;gap:40px;align-items:center;background:#fff;border-radius:22px;padding:34px;border:1px solid var(--line)}
-.feature .kind{display:inline-block;background:var(--sun);border-radius:6px;padding:0 10px;font-size:14px;font-weight:700;margin-bottom:10px}
-.feature h3{font-family:"Black Han Sans";font-weight:400;font-size:34px;margin:0 0 10px;line-height:1.25}
-.feature p{color:var(--sub);margin:0 0 14px}
-.feature ul{margin:0 0 22px;padding-left:18px}
-@media (max-width:860px){.feature{grid-template-columns:1fr;padding:24px}}
-
-/* 사주자판기 미니 화면 */
-.saju-shot{display:block;text-decoration:none;border-radius:18px;background:#D4A43C;padding:16px;box-shadow:0 14px 30px rgba(140,100,20,.25);transition:transform .25s}
-.saju-shot:hover{transform:translateY(-4px)}
-.saju-shot .scr{background:#F6F2E8;border-radius:12px;padding:16px}
-.saju-shot .top{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
-.saju-shot .top strong{font-family:"Black Han Sans";font-weight:400;font-size:22px;color:#2B2C34}
-.saju-shot .top span{font-size:12px;color:#8A6A2A}
-.saju-shot .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
-.saju-shot .c{background:#2B2C34;color:#F4F2EC;border-radius:10px;padding:10px 9px;font-size:13px;line-height:1.35}
-.saju-shot .c em{display:inline-block;font-style:normal;margin-top:8px;background:#D9A441;color:#2B2C34;border-radius:999px;padding:0 8px;font-size:12px;font-weight:700}
-.saju-shot .c em.free{background:#5DB37A;color:#fff}
-.saju-shot .go{display:block;text-align:center;margin-top:12px;color:#fff;font-weight:700}
-
-.others{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-top:24px}
-.other{background:#fff;border-radius:16px;padding:22px;border:1px solid var(--line);text-decoration:none;display:block}
-.other:hover{border-color:var(--ink)}
-.other small{color:var(--leaf);font-weight:700}
-.other h4{font-family:"Black Han Sans";font-weight:400;font-size:21px;margin:4px 0 6px}
-.other p{margin:0;color:var(--sub);font-size:15px}
-@media (max-width:860px){.others{grid-template-columns:1fr}}
-
-
-/* 동네배달 미니 화면 */
-.feature + .feature{margin-top:24px}
-.feature.flip > :first-child{order:2}
-@media (max-width:860px){.feature.flip > :first-child{order:0}}
-.kind.green{background:#C9F2D6}
-.dn-shot{display:block;text-decoration:none;border-radius:18px;background:#00C73C;padding:16px;box-shadow:0 14px 30px rgba(0,120,40,.22);transition:transform .25s}
-.dn-shot:hover{transform:translateY(-4px)}
-.dn-shot .scr{background:#fff;border-radius:12px;padding:14px;color:#23242B}
-.dn-shot .top{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
-.dn-shot .top strong{font-family:"Black Han Sans";font-weight:400;font-size:21px}
-.dn-shot .top span{font-size:12px;color:#00A832}
-.dn-shot .map{position:relative;height:150px;border-radius:10px;background:#EEF3EA;overflow:hidden;
-  background-image:linear-gradient(90deg,transparent 46%,#fff 46%,#fff 52%,transparent 52%),linear-gradient(0deg,transparent 40%,#fff 40%,#fff 46%,transparent 46%),linear-gradient(35deg,transparent 70%,#fff 70%,#fff 74%,transparent 74%)}
-.dn-shot .pin{position:absolute;width:30px;height:30px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:2px solid #fff;box-shadow:0 2px 4px rgba(0,0,0,.25);display:grid;place-items:center}
-.dn-shot .pin i{transform:rotate(45deg);font-style:normal;font-size:14px}
-.dn-shot .chips{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0 8px;font-size:12px}
-.dn-shot .chips b{font-weight:400;border:1px solid #DDE3E8;border-radius:999px;padding:1px 9px}
-.dn-shot .card{display:flex;justify-content:space-between;align-items:center;border:1px solid #E6EAEE;border-radius:10px;padding:9px 11px;font-size:13px}
-.dn-shot .card em{font-style:normal;white-space:nowrap;flex:none;margin-left:8px;background:#00C73C;color:#fff;border-radius:999px;padding:2px 10px;font-weight:700;font-size:12px}
-.dn-shot .go{display:block;text-align:center;margin-top:12px;color:#fff;font-weight:700}
-
-/* 진행 순서 */
-.steps{display:grid;grid-template-columns:repeat(4,1fr);gap:18px;counter-reset:s}
-.step{position:relative;padding-top:52px}
-.step::before{counter-increment:s;content:counter(s);position:absolute;top:0;left:0;width:40px;height:40px;border-radius:50%;background:var(--ink);color:var(--sun);font-family:"Black Han Sans";font-size:20px;display:grid;place-items:center}
-.step h4{margin:0 0 6px;font-size:19px}
-.step p{margin:0;color:var(--sub);font-size:15px}
-@media (max-width:860px){.steps{grid-template-columns:1fr 1fr}}
-@media (max-width:520px){.steps{grid-template-columns:1fr}}
-
-/* 문의 */
-.contact{background:var(--ink);color:#fff;padding:78px 0}
-.contact h2{color:var(--sun);font-size:clamp(30px,4vw,42px);margin:0 0 10px}
-.contact p{color:#C9D3E6;margin:0 0 28px}
-.contact .lines{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
-.contact a.line{display:block;text-decoration:none;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.18);border-radius:14px;padding:18px 20px}
-.contact a.line:hover{border-color:var(--sun)}
-.contact .line span{display:block;font-size:14px;color:#AEB9CF}
-.contact .line strong{font-size:20px}
-@media (max-width:860px){.contact .lines{grid-template-columns:1fr}}
-footer{background:#16203A;color:#8F9AB3;font-size:14px;padding:22px 0}
-
-
-/* 서비스 탭 바 */
-.tabbar{background:#fff;border-bottom:1px solid var(--line);position:sticky;top:64px;z-index:9}
-.tabs{display:flex;overflow-x:auto;scrollbar-width:none}
-.tabs::-webkit-scrollbar{display:none}
-.tabs a{flex:1 0 auto;text-align:center;text-decoration:none;padding:14px 18px;font-size:16px;border-right:1px solid var(--line);white-space:nowrap}
-.tabs a:first-child{border-left:1px solid var(--line)}
-.tabs a.on{background:var(--ink);color:var(--sun);font-weight:700}
-.tabs a:hover:not(.on){background:var(--sky)}
-
-/* 첫 화면 말풍선 */
-.promise{display:inline-block;background:#fff;border:2px solid var(--ink);border-radius:10px;padding:4px 14px;font-weight:700;margin:-6px 0 18px}
-.hero-right{position:relative}
-.bubbles{display:flex;gap:14px;margin-bottom:16px;flex-wrap:wrap}
-.bub{position:relative;background:#fff;border-radius:18px;padding:22px 18px 14px;font-size:16px;line-height:1.5;box-shadow:0 8px 20px rgba(30,42,68,.1);flex:1 1 180px}
-.bub::after{content:"";position:absolute;bottom:-9px;left:26px;border:10px solid transparent;border-top-color:#fff;border-bottom:0}
-.bub.b2{background:var(--sun)}
-.bub.b2::after{border-top-color:var(--sun);left:auto;right:26px}
-.pill{position:absolute;top:-12px;left:14px;font-size:13px;font-weight:700;color:#fff;border-radius:999px;padding:2px 12px}
-.p1{background:#7A86A0}.p2{background:var(--leaf)}
-
-/* 서비스 패널 */
-.svc-panels{border-top:3px solid var(--ink);padding-top:26px}
-.panel{display:none;max-width:44em}
-.panel.on{display:block}
-.panel h3{font-family:"Black Han Sans";font-weight:400;font-size:30px;margin:0 0 10px}
-.panel p{color:var(--sub);margin:0 0 14px}
-.panel ul{margin:0;padding-left:20px}
-.panel li{margin-bottom:6px}
-
-/* 성과 숫자 */
-.proof{background:#fff}
-.nums{display:grid;grid-template-columns:repeat(3,1fr);border-top:3px solid var(--ink)}
-.num{padding:26px 22px;border-right:1px solid var(--line)}
-.num:last-child{border-right:none}
-.num strong{display:block;font-family:"Black Han Sans";font-weight:400;font-size:46px;line-height:1.1;color:var(--ink)}
-.num span{color:var(--sub);font-size:15px}
-@media (max-width:860px){.nums{grid-template-columns:1fr}.num{border-right:none;border-bottom:1px solid var(--line)}}
-
-/* 떠 있는 상담 버튼 */
-.float-call{position:fixed;right:20px;bottom:22px;z-index:20;display:flex;align-items:center;gap:6px;background:var(--sun);color:var(--ink);text-decoration:none;font-weight:700;font-size:17px;padding:12px 20px;border-radius:999px;box-shadow:0 8px 22px rgba(30,42,68,.25)}
-.float-call:hover{background:#FFB800}
-
-@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important;scroll-behavior:auto!important}}
+*{font-family:'Noto Sans KR',sans-serif}
+#map{height:280px;width:100%;border-radius:16px;z-index:0}
+#pickMap{height:220px;width:100%;border-radius:12px;z-index:0}
+.hide-scroll::-webkit-scrollbar{display:none}
+.slides{display:flex;transition:transform .45s ease;touch-action:pan-y}
+.slide{flex:0 0 100%;min-width:100%}
+.dot{width:7px;height:7px;border-radius:99px;background:rgba(0,0,0,.18);transition:all .3s}
+.dot.on{width:18px;background:#00C73C}
 </style>
 </head>
-<body>
+<body class="bg-[#F6F7F8]">
+<div class="mx-auto max-w-[520px] bg-white min-h-screen flex flex-col shadow">
 
-<header>
-  <div class="wrap bar">
-    <a class="logo" href="#top" aria-label="블로그마스타 처음으로">
-      <span class="mark">BM</span><span class="name">블로그마스타</span>
-    </a>
-    <nav aria-label="주요 메뉴">
-      <a href="#services">하는 일</a>
-      <a href="#works">작업 사례</a>
-      <a href="#process">진행 순서</a>
-      <a class="call" href="tel:01094725785">전화 상담</a>
-    </nav>
+<header class="sticky top-0 z-20 bg-white border-b px-4 h-[56px] flex items-center justify-between gap-2 whitespace-nowrap">
+  <div class="flex items-center gap-2"><div class="w-7 h-7 rounded-full bg-[#00C73C] text-white grid place-items-center font-black text-[13px]">동</div><span class="leading-tight"><b class="text-[15px] block">동네배달</b><span class="text-[10px] text-[#888] block -mt-0.5">우리 동네 생활지도</span></span><span class="text-[11px] px-1.5 py-0.5 rounded-full bg-[#F1F8F2] text-[#00A832] ml-1 max-[380px]:hidden">둔산동</span></div>
+  <div class="flex items-center gap-1.5">
+    <button id="cpBtn" type="button" class="h-[30px] px-2.5 rounded-full bg-[#E52528] text-white text-[12px] font-bold whitespace-nowrap shadow-sm">🛒 쿠팡 바로가기</button>
+    <button id="shareBtn" class="text-[12px] border rounded-full px-2.5 h-[30px] whitespace-nowrap">공유</button>
   </div>
 </header>
-<div class="tabbar" role="tablist" aria-label="서비스 바로가기">
-  <div class="wrap tabs">
-    <a href="#services" data-tab="blog" class="on">블로그 관리 대행</a>
-    <a href="#services" data-tab="place">플레이스 상위노출</a>
-    <a href="#services" data-tab="shorts">숏폼·쇼츠 제작</a>
-    <a href="#services" data-tab="web">홈페이지 제작</a>
-    <a href="#services" data-tab="ai">AI 웹서비스</a>
+
+<!-- 공유 QR 창 -->
+<div id="qrModal" class="hidden fixed inset-0 z-50 bg-black/50 flex items-center justify-center px-6">
+  <div class="bg-white w-full max-w-[360px] rounded-[18px] p-5 text-center">
+    <h3 class="font-extrabold text-[16px]">동네배달 공유하기</h3>
+    <p class="text-[12px] text-[#666] mt-1">휴대폰 카메라로 찍으면 바로 열려요</p>
+    <canvas id="qrCanvas" class="mx-auto mt-3 w-[220px] h-[220px] rounded-[12px]"></canvas>
+    <div id="qrUrl" class="text-[11px] text-[#999] mt-2 break-all"></div>
+    <div class="grid grid-cols-2 gap-2 mt-4">
+      <button id="qrSend" type="button" class="h-[46px] rounded-[12px] border font-bold text-[13px]">🔗 링크 보내기</button>
+      <button id="qrSave" type="button" class="h-[46px] rounded-[12px] bg-[#00C73C] text-white font-bold text-[13px]">⬇️ QR 저장</button>
+    </div>
+    <button id="installBtn" type="button" class="mt-2 w-full h-[44px] rounded-[12px] bg-[#FFF4D6] border border-[#FFD36B] font-bold text-[13px]">📲 내 폰 홈 화면에 동네배달 추가</button>
+    <div id="installHelp" class="hidden mt-2 text-[12px] text-left leading-6 bg-[#F7F7F7] rounded-[10px] p-3"></div>
+    <button id="qrClose" type="button" class="mt-2 w-full h-[40px] text-[13px] text-[#888]">닫기</button>
   </div>
 </div>
 
-<main id="top">
-  <section class="hero">
-    <div class="wrap hero-grid">
-      <div>
-        <h1 class="display">사장님 가게,<br>검색하면 나오게<br>해 드립니다</h1>
-        <p class="promise">비용은 투명하게, 결과는 숫자로 보고드립니다.</p>
-        <p class="lead">블로그 관리부터 쇼츠·홍보영상, 홈페이지까지. 손님이 휴대폰으로 찾을 때 우리 가게가 먼저 보이도록, 대전 블로그마스타가 대신 챙겨 드립니다.</p>
-        <div class="btns">
-          <a class="btn main" href="tel:01094725785">전화로 상담하기</a>
-          <a class="btn ghost" href="#works">작업 사례 보기</a>
-        </div>
+<!-- 퀵 요청 창 -->
+<div id="qkModal" class="hidden fixed inset-0 z-50 bg-black/50 flex items-end sm:items-center justify-center">
+  <div class="bg-white w-full max-w-[520px] max-h-[92vh] overflow-y-auto rounded-t-[18px] sm:rounded-[18px] p-5">
+    <div class="flex justify-between items-center"><h3 class="font-extrabold text-[17px]">🛵 퀵 요청하기</h3><button id="qkClose" type="button" class="text-[22px] px-2">✕</button></div>
+    <p class="text-[12px] text-[#666] mt-1">요청을 보내면 <b id="qkName">제휴 퀵</b> 기사님이 확인하고 전화드려요. 요금은 거리에 따라 전화로 안내받으세요.</p>
+    <form id="qkForm" class="mt-3 space-y-2 text-[14px]">
+      <div><label class="text-[12px] font-bold ml-1">어디서 (출발지) *</label><input id="qk_from" maxlength="80" placeholder="예: 둔산꽃집 (둔산동 123)" class="w-full h-[46px] px-3 mt-1 rounded-[10px] border" required></div>
+      <div><label class="text-[12px] font-bold ml-1">어디로 (도착지) *</label><input id="qk_to" maxlength="80" placeholder="예: 둔산동 크로바아파트 101동" class="w-full h-[46px] px-3 mt-1 rounded-[10px] border" required></div>
+      <div class="grid grid-cols-2 gap-2">
+        <div><label class="text-[12px] font-bold ml-1">물건</label><input id="qk_item" maxlength="60" placeholder="예: 꽃다발 1개" class="w-full h-[46px] px-3 mt-1 rounded-[10px] border"></div>
+        <div><label class="text-[12px] font-bold ml-1">내 연락처 *</label><input id="qk_phone" maxlength="20" inputmode="tel" placeholder="010-0000-0000" class="w-full h-[46px] px-3 mt-1 rounded-[10px] border" required></div>
       </div>
-
-      <div class="hero-right">
-      <div class="bubbles" aria-hidden="true">
-        <div class="bub b1"><span class="pill p1">사장님 고민</span>광고비만 나가고<br>손님은 그대로였죠?</div>
-        <div class="bub b2"><span class="pill p2">블로그마스타</span>검색 맨 위에서<br>손님이 먼저 찾아옵니다</div>
-      </div>
-      <div class="search" aria-label="검색 결과 예시">
-        <div class="sbox">
-          <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5" fill="none" stroke="#2FA36B" stroke-width="2.5"/><path d="M15.5 15.5 21 21" stroke="#2FA36B" stroke-width="2.5" stroke-linecap="round"/></svg>
-          <span class="typed" id="typed"></span><span class="caret" aria-hidden="true"></span>
-        </div>
-        <ul class="results">
-          <li class="mine" id="mine"><b>우리 가게 이름<span class="tag">블로그</span></b>사진 많은 후기 글 · 찾아오는 길 · 영업시간 한눈에</li>
-          <li><b>다른 가게 A</b>지난해 올린 글 1개</li>
-          <li><b>다른 가게 B</b>사진 없는 짧은 소개</li>
-          <li><b>다른 가게 C</b>정보가 오래됨</li>
-        </ul>
-      </div>
-      </div>
-    </div>
-  </section>
-
-  <section class="block" id="services">
-    <div class="wrap">
-      <div class="sec-head">
-        <h2 class="display">이런 일을 대신 해 드립니다</h2>
-        <p>바쁜 가게 운영은 사장님이, 온라인 홍보는 블로그마스타가 맡습니다.</p>
-      </div>
-      <div class="svc-panels">
-        <div class="panel on" id="p-blog">
-          <h3>블로그 관리 대행</h3>
-          <p>손님이 실제로 검색하는 말로 가게 글을 쓰고, 정해진 날짜에 꾸준히 올립니다. 사장님은 사진만 보내 주시면 됩니다.</p>
-          <ul><li>검색어 분석 후 제목·본문 작성</li><li>가게 소개, 메뉴, 후기, 이벤트 글</li><li>매달 올린 글과 검색 순위 보고</li></ul>
-        </div>
-        <div class="panel" id="p-place">
-          <h3>플레이스 상위노출</h3>
-          <p>네이버 지도에서 "근처 맛집"을 찾는 손님에게 우리 가게가 먼저 보이도록 플레이스 정보를 정리하고 관리합니다.</p>
-          <ul><li>업체 정보·사진·메뉴·영업시간 정리</li><li>소식 글과 리뷰 답글 관리</li><li>블로그 글과 연결해 함께 노출</li></ul>
-        </div>
-        <div class="panel" id="p-shorts">
-          <h3>숏폼·쇼츠 제작</h3>
-          <p>휴대폰 세로 화면에 맞춘 30초~1분 영상으로 가게와 상품을 알립니다. 유튜브 쇼츠, 인스타 릴스에 바로 올릴 수 있게 만들어 드립니다.</p>
-          <ul><li>AI 그림·나레이션 활용 영상</li><li>썸네일, 제목, 설명, 태그까지</li><li>매일 올리는 시리즈 운영 대행</li></ul>
-        </div>
-        <div class="panel" id="p-web">
-          <h3>홈페이지 제작</h3>
-          <p>휴대폰에서 보기 좋은 가게 홈페이지를 만들고, 네이버·구글 검색에 등록까지 마쳐 드립니다.</p>
-          <ul><li>전화·카톡·지도 바로가기 버튼</li><li>네이버 서치어드바이저·구글 서치콘솔 등록</li><li>도메인 연결과 유지 관리</li></ul>
-        </div>
-        <div class="panel" id="p-ai">
-          <h3>AI 웹서비스</h3>
-          <p>예약, 상담, 결제가 되는 AI 서비스와 지역 플랫폼을 직접 개발합니다. 아래 사주자판기와 동네배달이 블로그마스타가 만든 실제 사례입니다.</p>
-          <ul><li>AI 상담·풀이 기능</li><li>토스페이먼츠 결제 연동</li><li>기획부터 운영까지 한 번에</li></ul>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <section class="block works" id="works">
-    <div class="wrap">
-      <div class="sec-head">
-        <h2 class="display">직접 만들어 운영 중인 작업</h2>
-        <p>말보다 결과로 보여 드립니다. 아래는 블로그마스타가 기획부터 운영까지 직접 하고 있는 것들입니다.</p>
-      </div>
-
-      <div class="feature">
-        <div>
-          <span class="kind">AI 웹서비스</span>
-          <h3>사주자판기<br>오늘이선녀의 무료 운세</h3>
-          <p>생년월일만 넣으면 AI가 사주를 풀어 주는 운세 사이트입니다. 화면 디자인, AI 풀이, 결제, 검색 등록까지 블로그마스타가 직접 만들었습니다.</p>
-          <ul>
-            <li>오늘의 운세·꿈해몽 무료, 사주·궁합·신년운세 유료</li>
-            <li>토스페이먼츠 결제 연동</li>
-            <li>AI 고민 상담 대화방 '고민하지마'</li>
-          </ul>
-          <a class="btn main" href="https://sajujapangi.com" target="_blank" rel="noopener">사주자판기 구경하기</a>
-        </div>
-        <a class="saju-shot" href="https://sajujapangi.com" target="_blank" rel="noopener" aria-label="사주자판기 사이트 열기">
-          <div class="scr">
-            <div class="top"><strong>운세 고르기</strong><span>sajujapangi.com</span></div>
-            <div class="grid">
-              <div class="c">오늘의 운세<br><em class="free">무료</em></div>
-              <div class="c">2027 신년운세<br><em>5,900원</em></div>
-              <div class="c">사주 총평<br><em>5,900원</em></div>
-              <div class="c">재물운<br><em>3,900원</em></div>
-              <div class="c">궁합<br><em>5,900원</em></div>
-              <div class="c">꿈해몽<br><em class="free">무료</em></div>
-            </div>
-          </div>
-          <span class="go">눌러서 바로 보기</span>
-        </a>
-      </div>
-
-
-      <div class="feature flip">
-        <div>
-          <span class="kind green">지역 플랫폼</span>
-          <h3>동네배달<br>우리 동네 생활지도</h3>
-          <p>"오늘 점심 뭐 먹지" 하는 고민에서 시작했습니다. 내 주변 음식점, 카페, 약국, 꽃집, 미용실을 지도 한 장에 모아 보여 주고, 누르면 바로 주문하거나 전화가 걸립니다. 기획부터 개발, 도메인 연결, 검색 등록까지 블로그마스타가 직접 만들어 운영합니다.</p>
-          <ul>
-            <li>손님은 가입 없이 바로 이용, 주문은 평소 쓰는 쿠팡이츠·배민 그대로</li>
-            <li>사장님은 가입비·수수료 없이 지도에 등록, 업종별 색깔 핀으로 한눈에</li>
-            <li>광고 자리에 유튜브 홍보 영상 연결, 계산대용 QR 카드 제공</li>
-          </ul>
-          <a class="btn main" href="https://dongnebaedal.com" target="_blank" rel="noopener">동네배달 구경하기</a>
-        </div>
-        <a class="dn-shot" href="https://dongnebaedal.com" target="_blank" rel="noopener" aria-label="동네배달 사이트 열기">
-          <div class="scr">
-            <div class="top"><strong>동네배달</strong><span>dongnebaedal.com</span></div>
-            <div class="map" aria-hidden="true">
-              <span class="pin" style="left:18%;top:20%;background:#FF6A00"><i>🍗</i></span>
-              <span class="pin" style="left:62%;top:14%;background:#8D5524"><i>☕</i></span>
-              <span class="pin" style="left:40%;top:48%;background:#EC407A;border-color:#FFC107"><i>💐</i></span>
-              <span class="pin" style="left:76%;top:56%;background:#00A86B"><i>💊</i></span>
-              <span class="pin" style="left:12%;top:62%;background:#8E24AA"><i>💇</i></span>
-            </div>
-            <div class="chips" aria-hidden="true"><b>🍗 음식</b><b>☕ 카페</b><b>💊 약국</b><b>💐 꽃집</b><b>💇 미용</b></div>
-            <div class="card"><span><strong>둔산꽃집</strong> · 꽃다발 30,000원</span><em>📞 전화하기</em></div>
-          </div>
-          <span class="go">눌러서 바로 보기</span>
-        </a>
-      </div>
-
-      <div class="others">
-        <a class="other" href="https://www.youtube.com/@사주자판기-a2z" target="_blank" rel="noopener">
-          <small>유튜브 쇼츠</small>
-          <h4>오늘이선녀의 사주자판기</h4>
-          <p>매일 아침 '오늘의 행운의 띠' 쇼츠를 만들어 올리는 채널. 영상마다 수백~천여 회 조회.</p>
-        </a>
-        <a class="other" href="https://blog.naver.com/blogmastars" target="_blank" rel="noopener">
-          <small>블로그</small>
-          <h4>블로그마스타 블로그</h4>
-          <p>블로그 운영과 홍보 노하우를 직접 쓰고 운영하는 블로그.</p>
-        </a>
-        <a class="other" href="#contact">
-          <small>홍보영상</small>
-          <h4>농산물·화장품 홍보영상</h4>
-          <p>사과, 화장품 등 판매 상품 홍보 쇼츠 제작. 샘플은 상담 때 보여 드립니다.</p>
-        </a>
-      </div>
-    </div>
-  </section>
-
-  <section class="block proof">
-    <div class="wrap">
-      <div class="sec-head">
-        <h2 class="display">말보다 숫자로 보여 드립니다</h2>
-        <p>블로그마스타가 직접 만들고 운영하는 채널의 실제 기록입니다.</p>
-      </div>
-      <div class="nums">
-        <div class="num"><strong>1,000회+</strong><span>매일 올리는 운세 쇼츠<br>영상 한 편 조회수</span></div>
-        <div class="num"><strong>9편</strong><span>채널 개설 일주일 만에<br>올린 쇼츠 영상</span></div>
-        <div class="num"><strong>3곳</strong><span>네이버·구글 검색 등록을<br>직접 마친 사이트와 블로그</span></div>
-      </div>
-    </div>
-  </section>
-
-  <section class="block" id="process">
-    <div class="wrap">
-      <div class="sec-head">
-        <h2 class="display">진행은 이렇게 합니다</h2>
-      </div>
-      <div class="steps">
-        <div class="step"><h4>전화 상담</h4><p>가게 이야기와 원하시는 걸 편하게 들려주세요.</p></div>
-        <div class="step"><h4>계획 세우기</h4><p>어떤 검색어로, 어떤 글·영상을 만들지 정합니다.</p></div>
-        <div class="step"><h4>제작</h4><p>글, 영상, 홈페이지를 만들어 확인받고 올립니다.</p></div>
-        <div class="step"><h4>관리와 보고</h4><p>꾸준히 올리고, 반응을 정리해 알려 드립니다.</p></div>
-      </div>
-    </div>
-  </section>
-
-  <section class="contact" id="contact">
-    <div class="wrap">
-      <h2 class="display">상담은 무료입니다</h2>
-      <p>전화가 편하시면 전화로, 자료를 보내실 거면 이메일로 연락 주세요.</p>
-      <div class="lines">
-        <a class="line" href="tel:01094725785"><span>전화</span><strong>010-9472-5785</strong></a>
-        <a class="line" href="mailto:ko608@naver.com"><span>이메일</span><strong>ko608@naver.com</strong></a>
-        <a class="line" href="https://blog.naver.com/blogmastars" target="_blank" rel="noopener"><span>블로그</span><strong>blog.naver.com/blogmastars</strong></a>
-      </div>
-    </div>
-  </section>
-</main>
-
-<a class="float-call" href="tel:01094725785" aria-label="전화 상담">
-  <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><path d="M6.6 10.8a15.1 15.1 0 0 0 6.6 6.6l2.2-2.2a1 1 0 0 1 1-.25 11.4 11.4 0 0 0 3.6.57 1 1 0 0 1 1 1V20a1 1 0 0 1-1 1A17 17 0 0 1 3 4a1 1 0 0 1 1-1h3.5a1 1 0 0 1 1 1 11.4 11.4 0 0 0 .57 3.6 1 1 0 0 1-.25 1z" fill="#1E2A44"/></svg>
-  상담
-</a>
-<footer>
-  <div class="wrap">
-    블로그마스타 · 대표 고명성 · 대전광역시 · 010-9472-5785
-    <!-- 사업자등록번호가 따로 있으면 여기에 넣으세요 -->
+      <div><label class="text-[12px] font-bold ml-1">요청사항</label><input id="qk_memo" maxlength="120" placeholder="예: 오후 3시까지, 문 앞에 놔 주세요" class="w-full h-[46px] px-3 mt-1 rounded-[10px] border"></div>
+      <label class="flex gap-2 items-start text-[11.5px] text-[#444] bg-[#F7F7F7] rounded-[10px] p-3"><input id="qk_agree" type="checkbox" class="mt-0.5 w-4 h-4" required><span><b>연락처 제공 동의 (필수)</b><br>배달을 위해 요청 내용과 연락처를 제휴 퀵 업체에 전달합니다. 배달이 끝나면 3일 뒤 화면에서 사라지고, 기록은 정산 확인용으로만 보관합니다.</span></label>
+      <button id="qkBtn" type="submit" class="w-full h-[52px] rounded-[12px] bg-black text-white font-bold text-[15px]">🛵 퀵 요청 보내기</button>
+      <div id="qkMsg" class="text-center text-[13px] min-h-[1em]"></div>
+    </form>
   </div>
+</div>
+
+<!-- 유튜브 영상 창 -->
+<div id="ytModal" class="hidden fixed inset-0 z-50 bg-black/80 flex items-center justify-center px-4">
+  <div class="w-full max-w-[520px]">
+    <div class="flex justify-between items-center text-white mb-2"><b id="ytTitle" class="text-[15px] truncate"></b><button id="ytClose" type="button" class="text-[26px] px-2 leading-none">✕</button></div>
+    <div id="ytBox" class="relative w-full bg-black rounded-[14px] overflow-hidden mx-auto"></div>
+    <div id="ytBtns" class="mt-3 flex gap-2 justify-center"></div>
+  </div>
+</div>
+
+<!-- 쿠팡 제휴 안내 창 -->
+<div id="cpModal" class="hidden fixed inset-0 z-50 bg-black/50 flex items-center justify-center px-6">
+  <div class="bg-white w-full max-w-[360px] rounded-[18px] p-5 text-center">
+    <div class="text-[28px]">🛒</div>
+    <h3 class="font-extrabold text-[16px] mt-1">쿠팡으로 이동해요</h3>
+    <p class="text-[13px] text-[#555] mt-3 leading-6 bg-[#F7F7F7] rounded-[12px] p-3">이 사이트는 <b>쿠팡 파트너스 활동</b>의 일환으로, 이에 따른 일정액의 수수료를 제공받습니다.</p>
+    <a id="cpGo" href="https://link.coupang.com/a/hRBgeOU4VU" target="_blank" rel="noopener sponsored" class="mt-4 block h-[48px] leading-[48px] rounded-[12px] bg-[#E52528] text-white font-bold">확인하고 쿠팡 가기</a>
+    <button id="cpClose" type="button" class="mt-2 w-full h-[40px] text-[13px] text-[#888]">닫기</button>
+  </div>
+</div>
+
+<!-- 홈 -->
+<div id="tab-home" class="flex-1">
+  <div class="px-5 pt-4">
+    <!-- 가게 광고 자리 (시간차로 돌아감) -->
+    <div id="adBox" class="relative rounded-[18px] overflow-hidden border select-none">
+      <div id="slides" class="slides"></div>
+      <div id="dots" class="absolute bottom-2 left-0 right-0 flex justify-center gap-1.5"></div>
+    </div>
+
+    <!-- 카테고리 -->
+    <div id="chips" class="hide-scroll flex gap-2 overflow-x-auto mt-4 pb-1"></div>
+
+    <div id="map" class="border mt-3"></div>
+    <div id="legend" class="flex flex-wrap justify-center gap-x-3 gap-y-1 text-[11px] text-[#555] mt-2"></div>
+    <div class="text-[11px] text-[#999] mt-1 text-center">핀을 누르면 가게 정보와 주문·전화 버튼이 나와요</div>
+    <button id="quickBanner" type="button" class="hidden mt-4 w-full rounded-[16px] p-4 text-left bg-gradient-to-r from-[#FFF4D6] to-[#FFE3A3] border border-[#FFD36B] flex items-center gap-3">
+      <span class="text-[34px]">🛵</span>
+      <span class="flex-1 min-w-0"><b class="block text-[15px]">동네 퀵 부르기</b><span class="block text-[12px] text-[#555]">꽃·반찬·서류·물건, 동네 어디든 바로 배달</span></span>
+      <span class="shrink-0 text-[12px] font-bold px-3 py-2 rounded-full bg-black text-white">요청하기</span>
+    </button>
+    <div id="store-list" class="mt-4 grid grid-cols-1 gap-3 min-w-0"></div>
+
+    <p class="text-[10px] text-[#aaa] mt-5 px-1 leading-4">이 사이트는 쿠팡 파트너스 활동의 일환으로, 이에 따른 일정액의 수수료를 제공받습니다.</p>
+  </div>
+</div>
+
+<!-- 가게 등록 -->
+<div id="tab-register" class="hidden flex-1 px-5 py-5">
+  <div class="rounded-[16px] bg-gradient-to-br from-[#00C73C] to-[#00A832] p-5 text-white"><h2 class="text-[20px] font-extrabold">사장님 가게 등록 🚀</h2><p class="text-[12px] mt-1 opacity-90">등록비 0원 · 수수료 0%<br>신청하시면 확인 후 지도에 올려 드려요.</p></div>
+  <form id="regForm" class="mt-5 space-y-3">
+    <div><label class="text-[12px] font-bold ml-1">가게 이름 *</label><input id="f_name" maxlength="40" placeholder="예: 둔산 할매닭발" class="w-full h-[48px] px-4 mt-1 rounded-[12px] border text-[14px] focus:border-[#00C73C] outline-none" required></div>
+    <div><label class="text-[12px] font-bold ml-1">카테고리 *</label><select id="f_cat" class="w-full h-[48px] px-4 mt-1 rounded-[12px] border text-[14px]" required><option value="">선택하세요</option></select></div>
+    <div><label class="text-[12px] font-bold ml-1">대표 메뉴·상품 & 가격 *</label><input id="f_menu" maxlength="80" placeholder="예: 후라이드 19,000원 / 커트 15,000원 / 24시 영업" class="w-full h-[48px] px-4 mt-1 rounded-[12px] border text-[14px]" required></div>
+    <div><label class="text-[12px] font-bold ml-1">쿠팡이츠/배민 가게 링크 <span class="font-normal text-[#999]">(있으면)</span></label><input id="f_link" maxlength="400" placeholder="https://... 붙여넣기 · 없으면 비워 두세요" class="w-full h-[48px] px-4 mt-1 rounded-[12px] border text-[14px]"><div class="text-[10px] text-[#00A832] ml-1 mt-1">* 링크가 있으면 손님이 바로 주문 화면으로, 없으면 전화 버튼으로 연결돼요</div></div>
+    <div class="grid grid-cols-2 gap-3"><div><label class="text-[12px] font-bold ml-1">가게 전화번호 *</label><input id="f_phone" maxlength="20" inputmode="tel" placeholder="010-1234-5678" class="w-full h-[48px] px-3 mt-1 rounded-[12px] border text-[14px]" required></div><div><label class="text-[12px] font-bold ml-1">주소 *</label><input id="f_addr" maxlength="80" placeholder="둔산동 123" class="w-full h-[48px] px-3 mt-1 rounded-[12px] border text-[14px]" required></div></div>
+    <label class="flex gap-2 items-start text-[13px] bg-[#F1F8F2] rounded-[12px] p-3"><input id="f_showTel" type="checkbox" class="mt-0.5 w-4 h-4"><span><b>📞 손님 전화 받기</b><br><span class="text-[11px] text-[#555]">체크하면 손님 화면에 '전화하기' 버튼이 생겨 누르면 바로 연결돼요. 주문 링크가 없는 가게는 꼭 체크해 주세요.</span></span></label>
+    <div><label class="text-[12px] font-bold ml-1">한줄 소개</label><textarea id="f_intro" maxlength="120" placeholder="예: 20년 전통, 매운맛 조절 가능, 배달 30분!" class="w-full h-[80px] p-4 mt-1 rounded-[12px] border text-[14px]"></textarea></div>
+    <label class="flex gap-2 items-start text-[12px] text-[#444] bg-[#F7F7F7] rounded-[12px] p-3">
+      <input id="f_agree" type="checkbox" class="mt-0.5 w-4 h-4" required>
+      <span><b>개인정보 수집·이용 동의 (필수)</b><br>가게 등록 확인과 연락을 위해 전화번호·주소를 받습니다. '손님 전화 받기'를 체크한 경우에만 전화번호가 손님에게 공개됩니다. 가게 정보가 지도에서 내려가면 지체 없이 삭제합니다. <a href="/privacy.html" target="_blank" class="underline">자세히 보기</a></span>
+    </label>
+    <button type="submit" id="regBtn" class="w-full h-[54px] rounded-[14px] bg-[#00C73C] text-white font-bold text-[16px] shadow-lg shadow-green-200 mt-2">✅ 등록 신청하기</button>
+    <div id="regMsg" class="text-center text-[12px] mt-2 min-h-[1em]"></div>
+  </form>
+</div>
+
+<!-- 관리 -->
+<div id="tab-admin" class="hidden flex-1 px-5 py-5">
+  <h2 class="text-[18px] font-extrabold">관리 (사장님 전용) ⚙️</h2>
+  <div id="admin-lock" class="mt-4"><input id="pw" type="password" autocomplete="current-password" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="비밀번호" class="w-full h-[48px] px-4 rounded-[12px] border"><button id="unlockBtn" class="mt-2 w-full h-[48px] bg-black text-white rounded-[12px] font-bold">입장</button><div id="lockMsg" class="text-[12px] text-red-600 mt-2 min-h-[1em]"></div></div>
+  <div id="admin-content" class="hidden">
+    <div class="mt-4 flex gap-3 text-[12px] bg-[#F5F5F5] rounded-full px-4 py-2 w-fit"><span>대기 <b id="cnt-pending">0</b></span><span>·</span><span>노출 <b id="cnt-approved">0</b></span><span>·</span><span>광고 <b id="cnt-ad">0</b></span></div>
+    <h3 class="mt-6 font-bold text-[14px]">⏳ 승인 대기</h3>
+    <div id="pending-list" class="mt-3 grid gap-3"></div>
+    <h3 class="mt-8 font-bold text-[14px]">✅ 노출 중인 가게</h3>
+    <div id="approved-list" class="mt-3 grid gap-3"></div>
+    <h3 class="mt-8 font-bold text-[14px]">🛵 퀵 제휴 (충전금)</h3>
+    <div id="quick-admin" class="mt-3 rounded-[14px] border p-4 bg-[#FFFBEF] text-[12px]"></div>
+    <div class="mt-6 p-3 bg-[#FFF3E0] rounded-xl text-[11px] text-[#E65100] leading-5">💡 <b>광고 켜기</b>를 누른 가게가 맨 위 광고 자리에 4.5초씩 번갈아 나와요. 지도에 핀이 없는 가게는 <b>수정 → 지도에서 위치 누르기</b>로 위치를 정해 주세요.</div>
+    <button id="logoutBtn" class="mt-4 w-full h-[44px] border rounded-[12px] text-[13px]">관리 화면 나가기</button>
+  </div>
+</div>
+
+<footer class="px-5 py-5 text-[10.5px] leading-5 text-[#aaa] border-t mt-6 text-center">
+  주문과 배달은 각 가게와 주문 앱(쿠팡이츠·배민)에서 이루어지며, 동네배달은 가게 정보를 소개합니다.<br>
+  <a href="/privacy.html" class="underline">개인정보처리방침</a>
 </footer>
 
+<nav class="sticky bottom-0 bg-white border-t flex h-[64px] text-[11px] z-20">
+  <button data-tab="home" class="navb flex-1 grid place-items-center font-bold text-[#00C73C]"><span>🏠<br>홈</span></button>
+  <button data-tab="register" class="navb flex-1 grid place-items-center text-[#999]"><span>➕<br>가게등록</span></button>
+  <button data-tab="admin" class="navb flex-1 grid place-items-center text-[#999]"><span>⚙️<br>관리</span></button>
+</nav>
+</div>
+
+<!-- 가게 수정 창 -->
+<div id="editModal" class="hidden fixed inset-0 z-50 bg-black/50 flex items-end sm:items-center justify-center">
+  <div class="bg-white w-full max-w-[520px] max-h-[92vh] overflow-y-auto rounded-t-[18px] sm:rounded-[18px] p-5">
+    <div class="flex justify-between items-center"><h3 id="editTitle" class="font-extrabold text-[16px]">가게 수정</h3><button id="editClose" class="text-[22px] px-2">✕</button></div>
+    <div class="space-y-2 mt-3 text-[13px]">
+      <input id="e_name" maxlength="40" placeholder="가게 이름" class="w-full h-[44px] px-3 rounded-[10px] border">
+      <select id="e_cat" class="w-full h-[44px] px-3 rounded-[10px] border"></select>
+      <input id="e_menu" maxlength="80" placeholder="대표 메뉴 & 가격" class="w-full h-[44px] px-3 rounded-[10px] border">
+      <input id="e_link" maxlength="400" placeholder="https:// 주문 링크 (없으면 비워 두기)" class="w-full h-[44px] px-3 rounded-[10px] border">
+      <div class="grid grid-cols-2 gap-2"><input id="e_phone" maxlength="20" placeholder="전화번호" class="h-[44px] px-3 rounded-[10px] border"><input id="e_addr" maxlength="80" placeholder="주소" class="h-[44px] px-3 rounded-[10px] border"></div>
+      <textarea id="e_intro" maxlength="120" placeholder="한줄 소개" class="w-full h-[64px] p-3 rounded-[10px] border"></textarea>
+      <input id="e_yt" maxlength="200" placeholder="▶ 유튜브 영상 주소 (쇼츠도 돼요 · 없으면 비워 두기)" class="w-full h-[44px] px-3 rounded-[10px] border">
+      <div class="flex flex-wrap gap-x-4 gap-y-2 text-[13px]"><label class="flex items-center gap-1.5"><input id="e_showTel" type="checkbox" class="w-4 h-4"> 📞 손님 전화 공개</label><label class="flex items-center gap-1.5"><input id="e_ad" type="checkbox" class="w-4 h-4"> 광고 자리에 노출</label><label class="flex items-center gap-1.5"><input id="e_example" type="checkbox" class="w-4 h-4"> 예시 가게</label></div>
+      <div class="flex items-center justify-between mt-2"><div class="text-[12px] font-bold">📍 가게 위치 <span id="e_pos" class="font-normal text-[#999]"></span></div><button id="e_find" type="button" class="text-[12px] font-bold px-3 h-[32px] rounded-[8px] bg-[#23242B] text-white">🔎 주소로 찾기</button></div>
+      <div id="e_geoMsg" class="text-[11px] text-[#666] min-h-[1em]"></div>
+      <div id="pickMap" class="border"></div>
+      <button id="e_clearPos" type="button" class="text-[11px] underline text-[#999]">위치 지우기</button>
+    </div>
+    <button id="editSave" class="mt-4 w-full h-[50px] rounded-[12px] bg-[#00C73C] text-white font-bold">저장</button>
+    <div id="editMsg" class="text-[12px] text-red-600 mt-2 min-h-[1em] text-center"></div>
+  </div>
+</div>
+
 <script>
-document.querySelectorAll('.tabs a').forEach(t=>{
-  t.addEventListener('click',()=>{
-    document.querySelectorAll('.tabs a').forEach(x=>x.classList.toggle('on',x===t));
-    document.querySelectorAll('.panel').forEach(p=>p.classList.toggle('on',p.id==='p-'+t.dataset.tab));
+const CATS = ["치킨","한식","분식","카페","중식","일식","피자","야식","디저트","반찬","편의점","약국","꽃집","미용실","세탁소","생활","기타"];
+const EMOJI = {치킨:"🍗",한식:"🍚",분식:"🍢",카페:"☕",중식:"🥟",일식:"🍣",피자:"🍕",야식:"🌶️",디저트:"🍰",반찬:"🥢",편의점:"🏪",약국:"💊",꽃집:"💐",미용실:"💇",세탁소:"👕",생활:"🛠️",기타:"📍"};
+const CENTER = [36.3504, 127.3845];
+const CONTACT = "010-9472-5785";
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const safeLink = (u) => /^https:\/\//i.test(u || "") ? u : "#";
+const telHref = (t) => "tel:" + String(t || "").replace(/[^0-9+]/g, "");
+// 가게 버튼: 주문 링크가 있으면 주문하기, 없으면 전화하기 (둘 다 있으면 둘 다)
+function actions(s) {
+  const a = [];
+  if (/^https:\/\//i.test(s.link || "")) a.push({ href: safeLink(s.link), label: s.example ? "쿠팡이츠 열기" : "주문하기 →", ext: true });
+  if (s.tel) a.push({ href: telHref(s.tel), label: "📞 전화하기", ext: false, call: true });
+  if (QUICK.on && !s.example && !/^https:\/\//i.test(s.link || "")) a.push({ quick: true, label: "🛵 퀵" });
+  return a;
+}
+function btnHtml(s, cls, callCls) {
+  return actions(s).map(b => b.quick ? `<button type="button" data-quick="${esc(s.id)}" class="${cls.replace("bg-black", "bg-[#FFB300]").replace("text-white", "text-black")}">${b.label}</button>` : `<a href="${esc(b.href)}" ${b.ext ? 'target="_blank" rel="noopener"' : ""} data-click="${esc(s.id)}" class="${b.call ? callCls : cls}">${b.label}</a>`).join("");
+}
+let STORES = [], filter = "전체", map = null, markers = null, QUICK = { on: false, name: "" };
+
+async function api(path, body, admin) {
+  const headers = { "content-type": "application/json" };
+  if (admin) headers["x-admin-pw"] = sessionStorage.getItem("dn_pw") || "";
+  const r = await fetch("/api/" + path, body ? { method: "POST", headers, body: JSON.stringify(body) } : { headers });
+  const d = await r.json().catch(() => ({ error: "서버 응답을 읽지 못했어요." }));
+  if (!r.ok) { const e = new Error(d.error || "오류가 났어요."); e.status = r.status; throw e; }
+  return d;
+}
+function track(id){ try{ navigator.sendBeacon("/api/click", new Blob([JSON.stringify({id})], {type:"application/json"})); }catch(e){} }
+
+// ── 카테고리 선택지 ──
+["f_cat","e_cat"].forEach(id => { $(id).insertAdjacentHTML("beforeend", CATS.map(c => `<option>${c}</option>`).join("")); });
+
+// ── 공유 ──
+// ── 공유: QR 코드 ──
+const SITE_URL = location.origin + "/";
+function drawQR(canvas, url, px) {
+  const qr = qrcode(0, "M"); qr.addData(url); qr.make();
+  const n = qr.getModuleCount(), quiet = 2, cell = Math.floor(px / (n + quiet * 2));
+  const size = cell * (n + quiet * 2);
+  canvas.width = size; canvas.height = size;
+  const c = canvas.getContext("2d");
+  c.fillStyle = "#fff"; c.fillRect(0, 0, size, size); c.fillStyle = "#111";
+  for (let r = 0; r < n; r++) for (let k = 0; k < n; k++) if (qr.isDark(r, k)) c.fillRect((k + quiet) * cell, (r + quiet) * cell, cell, cell);
+  return canvas;
+}
+$("shareBtn").onclick = () => {
+  try { drawQR($("qrCanvas"), SITE_URL, 440); } catch (e) {}
+  $("qrUrl").textContent = SITE_URL;
+  $("qrModal").classList.remove("hidden");
+};
+$("qrClose").onclick = () => $("qrModal").classList.add("hidden");
+$("qrModal").addEventListener("click", (e) => { if (e.target.id === "qrModal") $("qrModal").classList.add("hidden"); });
+$("qrSend").onclick = async () => {
+  try { if (navigator.share) { await navigator.share({ title: "동네배달 둔산동", text: "우리 동네 맛집 지도, 바로 주문까지!", url: SITE_URL }); return; } } catch (e) { return; }
+  try { await navigator.clipboard.writeText(SITE_URL); $("qrSend").textContent = "✅ 복사됨"; setTimeout(() => $("qrSend").textContent = "🔗 링크 보내기", 1500); } catch (e) {}
+};
+// 가게·전단지에 붙이기 좋은 QR 카드 이미지로 저장
+$("qrSave").onclick = () => {
+  const W = 900, H = 1200, card = document.createElement("canvas"); card.width = W; card.height = H;
+  const c = card.getContext("2d");
+  const g = c.createLinearGradient(0, 0, 0, H); g.addColorStop(0, "#FFF8E1"); g.addColorStop(1, "#FFE9A8");
+  c.fillStyle = g; c.fillRect(0, 0, W, H);
+  c.textAlign = "center"; c.fillStyle = "#00A832"; c.font = "bold 44px sans-serif"; c.fillText("둔산동 맛집 지도", W / 2, 150);
+  c.fillStyle = "#23242B"; c.font = "900 96px sans-serif"; c.fillText("동네배달", W / 2, 260);
+  c.fillStyle = "#fff"; c.beginPath(); c.roundRect(150, 320, 600, 600, 36); c.fill();
+  c.drawImage(drawQR(document.createElement("canvas"), SITE_URL, 540), 180, 350, 540, 540);
+  c.fillStyle = "#23242B"; c.font = "bold 46px sans-serif"; c.fillText("📱 카메라로 찍어 보세요", W / 2, 1010);
+  c.fillStyle = "#666"; c.font = "34px sans-serif"; c.fillText("우리 동네 가게를 지도에서 찾고 바로 주문!", W / 2, 1070);
+  c.fillStyle = "#999"; c.font = "28px sans-serif"; c.fillText(SITE_URL.replace(/^https?:\/\//, "").replace(/\/$/, ""), W / 2, 1130);
+  const a = document.createElement("a"); a.download = "동네배달_QR.png"; a.href = card.toDataURL("image/png"); a.click();
+};
+
+// ── 광고 슬라이드 ──
+let slideIdx = 0, slideCount = 0, slideTimer = null, paused = false;
+function shuffle(a){ for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];} return a; }
+const BG = ["from-[#FFF4D6] to-[#FFE3A3]","from-[#FFE8EE] to-[#FFD0DC]","from-[#E6F7EA] to-[#C9EFD3]","from-[#E7F1FF] to-[#CFE3FF]"];
+function renderAds() {
+  const ads = shuffle(STORES.filter(s => s.ad && !s.example));
+  const slides = ads.map((s, i) => `
+    <div class="slide h-[160px] p-4 bg-gradient-to-br ${BG[i % BG.length]} relative">
+      <span class="absolute top-2 right-2 text-[10px] bg-black/55 text-white px-1.5 py-0.5 rounded">광고</span>
+      <div class="flex gap-3 items-center h-full">
+        ${s.yt ? `<button type="button" data-yt="${esc(s.id)}" class="relative shrink-0 w-[112px] h-[112px] rounded-[12px] overflow-hidden bg-black"><img src="https://i.ytimg.com/vi/${esc(s.yt)}/hqdefault.jpg" alt="" class="w-full h-full object-cover" loading="lazy"><span class="absolute inset-0 grid place-items-center"><span class="w-10 h-10 rounded-full bg-[#FF0000] text-white grid place-items-center text-[16px] shadow">▶</span></span></button>` : `<div class="text-[46px] w-[64px] text-center">${EMOJI[s.cat] || "🍱"}</div>`}
+        <div class="flex-1 min-w-0">
+          <div class="text-[11px] text-[#555]">${esc(s.cat)} · ${esc(s.addr)}</div>
+          <div class="font-black text-[19px] truncate">${esc(s.name)}</div>
+          <div class="text-[12px] text-[#333] truncate">${esc(s.menu)}</div>
+          ${s.intro ? `<div class="text-[11px] text-[#666] truncate">${esc(s.intro)}</div>` : ""}
+          <div class="mt-2 flex gap-1.5">${btnHtml(s, "inline-block text-[12px] font-bold px-3 py-1.5 rounded-full bg-black text-white", "inline-block text-[12px] font-bold px-3 py-1.5 rounded-full bg-[#00C73C] text-white")}</div>
+        </div>
+      </div>
+    </div>`);
+  slides.push(`
+    <div class="slide h-[160px] p-4 bg-gradient-to-br from-[#E6F7EA] to-[#FFF4D6] flex flex-col justify-center">
+      <div class="text-[12px] text-[#00A832] font-bold">사장님, 이 자리 비어 있어요!</div>
+      <div class="font-black text-[19px] mt-1">우리 가게를 맨 위에 🚀</div>
+      <div class="text-[12px] text-[#444] mt-1">둔산동 손님에게 가장 먼저 보이는 자리예요. 첫 가게는 무료로 올려 드려요.</div>
+      <div class="flex gap-2 mt-2"><button data-go="register" class="text-[12px] font-bold px-3 py-1.5 rounded-full bg-[#00C73C] text-white">가게 등록</button><a href="tel:${CONTACT}" class="text-[12px] font-bold px-3 py-1.5 rounded-full bg-white border">광고 문의</a></div>
+    </div>`);
+  $("slides").innerHTML = slides.join("");
+  slideCount = slides.length; slideIdx = 0;
+  $("dots").innerHTML = slideCount > 1 ? Array.from({length: slideCount}, (_, i) => `<i class="dot${i ? "" : " on"}"></i>`).join("") : "";
+  goSlide(0); startAuto();
+}
+function goSlide(i) {
+  slideIdx = (i + slideCount) % slideCount;
+  $("slides").style.transform = `translateX(-${slideIdx * 100}%)`;
+  [...$("dots").children].forEach((d, k) => d.classList.toggle("on", k === slideIdx));
+}
+function startAuto(){ clearInterval(slideTimer); if (slideCount > 1) slideTimer = setInterval(() => { if (!paused) goSlide(slideIdx + 1); }, 4500); }
+(() => {
+  const box = $("adBox"); let sx = 0, dx = 0, down = false;
+  box.addEventListener("pointerdown", e => { down = true; paused = true; sx = e.clientX; dx = 0; });
+  box.addEventListener("pointermove", e => { if (down) dx = e.clientX - sx; });
+  const up = () => { if (!down) return; down = false; paused = false; if (Math.abs(dx) > 40) { goSlide(slideIdx + (dx < 0 ? 1 : -1)); startAuto(); } };
+  box.addEventListener("pointerup", up); box.addEventListener("pointercancel", up); box.addEventListener("pointerleave", up);
+  box.addEventListener("click", e => {
+    if (Math.abs(dx) > 40) { e.preventDefault(); return; }
+    const a = e.target.closest("[data-click]"); if (a) track(a.dataset.click);
+    const g = e.target.closest("[data-go]"); if (g) showTab(g.dataset.go);
   });
-});
-(function(){
-  const text = '대전 맛집';
-  const el = document.getElementById('typed');
-  const mine = document.getElementById('mine');
-  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  if (reduce) { el.textContent = text; mine.classList.add('show'); return; }
-  let i = 0;
-  setTimeout(function step(){
-    el.textContent = text.slice(0, ++i);
-    if (i < text.length) setTimeout(step, 180);
-    else setTimeout(() => mine.classList.add('show'), 450);
-  }, 700);
 })();
+
+// ── 지도와 목록 ──
+function popupHtml(s) {
+  return `<div style="min-width:180px">
+    <div style="font-weight:800;font-size:13px">${esc(s.name)}${s.example ? ' <span style="font-size:10px;background:#9E9E9E;color:#fff;padding:1px 5px;border-radius:9px">예시</span>' : ""}</div>
+    <div style="font-size:11px;color:#777;margin-top:2px">${esc(s.cat)} · ${esc(s.addr)}</div>
+    <div style="margin-top:6px;font-size:11px;color:#444;background:#F9FAFB;padding:6px 8px;border-radius:8px">🍽️ ${esc(s.menu)}</div>
+    ${s.yt ? `<button type="button" data-yt="${esc(s.id)}" style="display:block;width:100%;margin-top:6px;background:#FF0000;color:#fff;text-align:center;padding:8px;border-radius:999px;font-size:12px;font-weight:700;border:0">▶ 가게 영상 보기</button>` : ""}
+    ${actions(s).map(b => b.quick ? `<button type="button" data-quick="${esc(s.id)}" style="display:block;width:100%;margin-top:6px;background:#FFB300;color:#111;text-align:center;padding:8px;border-radius:999px;font-size:12px;font-weight:700;border:0">🛵 퀵으로 받기</button>` : `<a href="${esc(b.href)}" ${b.ext ? 'target="_blank" rel="noopener"' : ""} data-click="${esc(s.id)}" style="display:block;margin-top:6px;background:${b.call ? "#00C73C" : "black"};color:white;text-align:center;padding:8px;border-radius:999px;font-size:12px;font-weight:700;text-decoration:none">${b.label}</a>`).join("")}</div>`;
+}
+// 업종별 핀 색깔
+const GROUPS = [
+  { name: "음식", color: "#FF6A00", cats: ["치킨","한식","분식","중식","일식","피자","야식","반찬"] },
+  { name: "카페·디저트", color: "#8D5524", cats: ["카페","디저트"] },
+  { name: "편의점·생활", color: "#1E88E5", cats: ["편의점","세탁소","생활","기타"] },
+  { name: "약국", color: "#00A86B", cats: ["약국"] },
+  { name: "꽃집", color: "#EC407A", cats: ["꽃집"] },
+  { name: "미용", color: "#8E24AA", cats: ["미용실"] },
+];
+const groupOf = (cat) => GROUPS.find(g => g.cats.includes(cat)) || GROUPS[2];
+const pinIcon = (ad, cat) => {
+  const col = cat ? groupOf(cat).color : "#FF6A00", sz = ad ? 40 : 34;
+  return L.divIcon({ className: "", html: `<div style="position:relative;width:${sz}px;height:${sz + 10}px">
+    <div style="position:absolute;left:0;top:0;width:${sz}px;height:${sz}px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:${col};border:${ad ? "3px solid #FFC107" : "2px solid #fff"};box-shadow:0 2px 5px rgba(0,0,0,.35)"></div>
+    <div style="position:absolute;left:0;top:0;width:${sz}px;height:${sz}px;display:grid;place-items:center;font-size:${ad ? 19 : 16}px">${cat ? (EMOJI[cat] || "📍") : "📍"}</div>
+    ${ad ? '<div style="position:absolute;right:-6px;top:-8px;font-size:14px">⭐</div>' : ""}</div>`,
+    iconSize: [sz, sz + 10], iconAnchor: [sz / 2, sz + 6], popupAnchor: [0, -sz] });
+};
+function renderLegend() {
+  const used = GROUPS.filter(g => STORES.some(s => typeof s.lat === "number" && g.cats.includes(s.cat)));
+  $("legend").innerHTML = used.map(g => `<span class="inline-flex items-center gap-1"><span style="width:10px;height:10px;border-radius:99px;background:${g.color};display:inline-block"></span>${g.name}</span>`).join("") + (STORES.some(s => s.ad && !s.example) ? '<span class="inline-flex items-center gap-1">⭐ 광고</span>' : "");
+}
+function visible(){ return STORES.filter(s => filter === "전체" || s.cat === filter); }
+function renderMap() {
+  if (!map) {
+    map = L.map("map").setView(CENTER, 15);
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { attribution: "© OpenStreetMap" }).addTo(map);
+    markers = L.layerGroup().addTo(map);
+    map.on("popupopen", e => { const el = e.popup.getElement(); el.querySelectorAll("[data-click]").forEach(a => a.addEventListener("click", () => track(a.dataset.click), { once: true })); el.querySelectorAll("[data-yt]").forEach(b => b.addEventListener("click", ev => { ev.stopPropagation(); openYt(STORES.find(s => s.id === b.dataset.yt)); })); el.querySelectorAll("[data-quick]").forEach(b => b.addEventListener("click", ev => { ev.stopPropagation(); track(b.dataset.quick); openQuick(STORES.find(s => s.id === b.dataset.quick)); })); });
+  }
+  markers.clearLayers();
+  visible().filter(s => typeof s.lat === "number" && typeof s.lng === "number")
+    .forEach(s => L.marker([s.lat, s.lng], { icon: pinIcon(s.ad && !s.example, s.cat), zIndexOffset: s.ad && !s.example ? 1000 : 0 }).bindPopup(popupHtml(s), { maxWidth: 240 }).addTo(markers));
+  setTimeout(() => map.invalidateSize(), 50);
+}
+function renderChips() {
+  const have = ["전체", ...CATS.filter(c => STORES.some(s => s.cat === c))];
+  $("chips").innerHTML = have.map(c => `<button data-cat="${c}" class="shrink-0 text-[12px] px-3 py-1.5 rounded-full border ${c === filter ? "bg-black text-white border-black" : "bg-white"}">${c === "전체" ? "전체" : (EMOJI[c] + " " + c)}</button>`).join("");
+}
+$("chips").addEventListener("click", e => { const b = e.target.closest("[data-cat]"); if (!b) return; filter = b.dataset.cat; renderChips(); renderList(); try { renderMap(); } catch (err) {} });
+function renderList() {
+  const list = visible().slice().sort((a, b) => (b.ad && !b.example) - (a.ad && !a.example) || a.example - b.example);
+  $("store-list").innerHTML = list.length ? list.map(s => {
+    const badge = s.example ? '<span class="text-[10px] bg-[#9E9E9E] text-white px-1.5 py-0.5 rounded-full ml-1">예시</span>' : (s.ad ? '<span class="text-[10px] bg-[#E53935] text-white px-1.5 py-0.5 rounded-full ml-1">광고</span>' : "");
+    return `<div class="rounded-[16px] border p-4 flex gap-3 min-w-0 overflow-hidden"><div class="w-[56px] h-[56px] shrink-0 rounded-[12px] bg-[#F3F4F6] grid place-items-center text-[24px]">${EMOJI[s.cat] || "🍱"}</div>
+      <div class="flex-1 min-w-0"><div class="font-bold text-[14px] truncate">${esc(s.name)}${badge} <span class="text-[11px] font-medium text-[#777]">· ${esc(s.cat)}</span></div>
+      <div class="text-[12px] text-[#444] mt-1 truncate">${esc(s.menu)}</div>
+      <div class="text-[11px] text-[#999] mt-1 truncate">${esc(s.addr)}${s.intro ? " · " + esc(s.intro) : ""}</div>
+      <div class="mt-2 flex flex-wrap items-center gap-2">${s.yt ? `<button type="button" data-yt="${esc(s.id)}" class="inline-block text-[11px] font-bold px-3 py-1.5 rounded-full bg-[#FF0000] text-white">▶ 영상</button>` : ""}${btnHtml(s, "inline-block text-[11px] font-bold px-3 py-1.5 rounded-full bg-black text-white", "inline-block text-[11px] font-bold px-3 py-1.5 rounded-full bg-[#00C73C] text-white")}${s.example ? '<span class="text-[10px] text-[#aaa]">예시 가게예요</span>' : ""}</div></div></div>`;
+  }).join("") : '<div class="text-[12px] text-[#999] py-8 text-center border border-dashed rounded-xl">이 종류의 가게가 아직 없어요</div>';
+}
+$("store-list").addEventListener("click", e => { const a = e.target.closest("[data-click]"); if (a) track(a.dataset.click); });
+async function loadHome() {
+  try { QUICK = await api("quick/info"); } catch (e) { QUICK = { on: false, name: "" }; }
+  $("quickBanner").classList.toggle("hidden", !QUICK.on);
+  try { STORES = (await api("stores")).stores || []; }
+  catch (e) { $("store-list").innerHTML = `<div class="text-[12px] text-red-600 text-center py-6">${esc(e.message)}</div>`; STORES = []; }
+  renderAds(); renderChips(); renderList();
+  try { renderLegend(); renderMap(); } catch (e) { $("map").innerHTML = '<div class="h-full grid place-items-center text-[12px] text-[#999]">지도를 불러오지 못했어요. 아래 목록에서 가게를 찾아 주세요.</div>'; }
+}
+
+// ── 탭 ──
+function showTab(t) {
+  ["home","register","admin"].forEach(x => $("tab-" + x).classList.toggle("hidden", x !== t));
+  document.querySelectorAll(".navb").forEach(b => { const on = b.dataset.tab === t; b.classList.toggle("text-[#00C73C]", on); b.classList.toggle("font-bold", on); b.classList.toggle("text-[#999]", !on); });
+  window.scrollTo(0, 0);
+  if (t === "home") setTimeout(() => map && map.invalidateSize(), 50);
+  if (t === "admin" && sessionStorage.getItem("dn_pw")) loadAdmin();
+}
+document.querySelectorAll(".navb").forEach(b => b.onclick = () => showTab(b.dataset.tab));
+
+// ── 가게 등록 신청 ──
+$("regForm").addEventListener("submit", async e => {
+  e.preventDefault();
+  const body = { name: $("f_name").value, cat: $("f_cat").value, menu: $("f_menu").value, link: $("f_link").value.trim(), phone: $("f_phone").value, showTel: $("f_showTel").checked, addr: $("f_addr").value, intro: $("f_intro").value, agree: $("f_agree").checked };
+  if (!body.link && !body.showTel) { $("regMsg").className = "text-center text-[12px] mt-2 text-red-600"; $("regMsg").textContent = "주문 링크가 없으면 '📞 손님 전화 받기'를 체크해 주세요."; return; }
+  $("regBtn").disabled = true; $("regMsg").className = "text-center text-[12px] mt-2"; $("regMsg").textContent = "보내는 중…";
+  try {
+    await api("apply", body);
+    e.target.reset();
+    $("regMsg").className = "text-center text-[13px] mt-2 text-[#00A832] font-bold";
+    $("regMsg").textContent = "신청이 접수됐어요! 확인 후 지도에 올려 드릴게요 🙌";
+  } catch (err) { $("regMsg").className = "text-center text-[12px] mt-2 text-red-600"; $("regMsg").textContent = err.message; }
+  $("regBtn").disabled = false;
+});
+
+// ── 관리 ──
+let ADMIN = { stores: [], pending: [], clicks: {} };
+$("unlockBtn").onclick = async () => {
+  // 폰에서 복사할 때 붙는 띄어쓰기·줄바꿈·보이지 않는 글자 제거
+  const raw = $("pw").value;
+  const pw = raw.replace(/[^\x21-\x7E]/g, "");
+  if (/[ㄱ-ㅎㅏ-ㅣ가-힣]/.test(raw)) { $("lockMsg").textContent = "키보드를 영어로 바꾸고 입력해 주세요."; return; }
+  sessionStorage.setItem("dn_pw", pw); await loadAdmin();
+};
+$("pw").addEventListener("keydown", e => { if (e.key === "Enter") $("unlockBtn").click(); });
+$("logoutBtn").onclick = () => { sessionStorage.removeItem("dn_pw"); $("pw").value = ""; $("admin-content").classList.add("hidden"); $("admin-lock").classList.remove("hidden"); };
+async function loadAdmin() {
+  $("lockMsg").textContent = "";
+  try { ADMIN = await api("admin/list", null, true); }
+  catch (e) { if (e.status === 401) sessionStorage.removeItem("dn_pw"); $("lockMsg").textContent = e.message; $("admin-content").classList.add("hidden"); $("admin-lock").classList.remove("hidden"); return; }
+  $("admin-lock").classList.add("hidden"); $("admin-content").classList.remove("hidden"); loadQuickAdmin();
+  const { stores, pending, clicks } = ADMIN;
+  $("cnt-pending").textContent = pending.length; $("cnt-approved").textContent = stores.length; $("cnt-ad").textContent = stores.filter(s => s.ad && !s.example).length;
+  $("pending-list").innerHTML = pending.length ? pending.map(s => `
+    <div class="rounded-[14px] border p-4 bg-white"><div class="flex justify-between"><div class="font-bold text-[14px]">${esc(s.name)} <span class="text-[11px] px-2 py-0.5 bg-[#FFF3E0] text-[#FF6A00] rounded-full">${esc(s.cat)}</span></div><span class="text-[10px] text-[#999]">${new Date(s.createdAt).toLocaleDateString("ko-KR")}</span></div>
+    <div class="text-[12px] text-[#444] mt-2 grid gap-1"><div>📍 ${esc(s.addr)}</div><div>📞 <a href="${esc(telHref(s.phone))}" class="underline">${esc(s.phone)}</a> ${s.showTel ? '<span class="text-[10px] text-[#00A832] font-bold">손님 공개</span>' : '<span class="text-[10px] text-[#999]">비공개</span>'}</div><div>🍽️ ${esc(s.menu)}</div><div class="truncate">🔗 ${s.link ? `<a href="${esc(safeLink(s.link))}" target="_blank" rel="noopener" class="underline text-[#00A832]">${esc(s.link)}</a>` : '<span class="text-[#999]">주문 링크 없음 (전화 연결)</span>'}</div>${s.intro ? `<div class="text-[#666]">💬 ${esc(s.intro)}</div>` : ""}</div>
+    <div class="flex gap-2 mt-3"><button data-act="approve" data-id="${esc(s.id)}" class="flex-1 h-9 rounded-full bg-[#00C73C] text-white text-[12px] font-bold">✅ 확인하고 승인</button><button data-act="reject" data-id="${esc(s.id)}" class="flex-1 h-9 rounded-full bg-[#eee] text-[12px] font-bold">🗑️ 삭제</button></div></div>`).join("")
+    : '<div class="text-[12px] text-[#999] py-8 text-center border border-dashed rounded-xl">대기 중인 신청이 없어요</div>';
+  $("approved-list").innerHTML = stores.length ? stores.map(s => `
+    <div class="rounded-[14px] border p-4 ${s.example ? "bg-[#F5F5F5]" : s.ad ? "bg-[#FFF5F5] border-[#FFCDD2]" : "bg-[#F9FFF9]"}">
+      <div class="font-bold text-[13px]">${esc(s.name)} · ${esc(s.cat)} ${s.example ? '<span class="text-[10px] bg-[#9E9E9E] text-white px-1.5 py-0.5 rounded-full">예시</span>' : ""}${s.ad && !s.example ? '<span class="text-[10px] bg-[#E53935] text-white px-1.5 py-0.5 rounded-full">광고 중</span>' : ""}</div>
+      <div class="text-[11px] text-[#666] mt-1">${esc(s.addr)} · ${esc(s.phone || "")}${s.showTel ? " (공개)" : ""} · ${s.yt ? "▶영상 · " : ""}${typeof s.lat === "number" ? "📍위치 있음" : '<b class="text-[#E65100]">📍위치 없음</b>'} · 클릭 ${clicks[s.id] || 0}회</div>
+      <div class="text-[11px] text-[#444] mt-1">${esc(s.menu)}</div>
+      <div class="flex gap-2 mt-3"><button data-act="edit" data-id="${esc(s.id)}" class="flex-1 h-8 rounded-full bg-white border text-[11px] font-bold">✏️ 수정</button>${s.example ? "" : `<button data-act="ad" data-id="${esc(s.id)}" class="flex-1 h-8 rounded-full ${s.ad ? "bg-[#E53935] text-white" : "bg-white border"} text-[11px] font-bold">${s.ad ? "광고 끄기" : "⭐ 광고 켜기"}</button>`}<button data-act="delete" data-id="${esc(s.id)}" class="flex-1 h-8 rounded-full bg-[#FFEBEE] text-[#D32F2F] text-[11px] font-bold">🗑️ 삭제</button></div></div>`).join("")
+    : '<div class="text-[11px] text-[#999] py-4 text-center">노출 중인 가게가 없어요</div>';
+}
+document.getElementById("tab-admin").addEventListener("click", async e => {
+  const b = e.target.closest("[data-act]"); if (!b) return;
+  const id = b.dataset.id, act = b.dataset.act;
+  try {
+    if (act === "approve") return openEdit(ADMIN.pending.find(s => s.id === id), "approve");
+    if (act === "edit") return openEdit(ADMIN.stores.find(s => s.id === id), "update");
+    if (act === "reject") { if (!confirm("이 신청을 삭제할까요?")) return; await api("admin/reject", { id }, true); }
+    if (act === "delete") { if (!confirm("이 가게를 지도에서 내릴까요?")) return; await api("admin/delete", { id }, true); }
+    if (act === "ad") { const s = ADMIN.stores.find(x => x.id === id); await api("admin/update", { id, ad: !s.ad }, true); }
+    await loadAdmin(); loadHome();
+  } catch (err) { alert(err.message); }
+});
+
+// ── 수정·승인 창 (지도에서 위치 누르기) ──
+let editCtx = null, pickMap = null, pickMarker = null, pickPos = null, noPosWarned = false;
+function setPick(lat, lng) {
+  pickPos = (typeof lat === "number" && typeof lng === "number") ? { lat, lng } : null;
+  if (pickMarker) { pickMarker.remove(); pickMarker = null; }
+  if (pickPos) { pickMarker = L.marker([lat, lng], { icon: pinIcon(false, $("e_cat").value) }).addTo(pickMap); }
+  $("e_pos").textContent = pickPos ? "(지정됨)" : "(아직 없음)";
+}
+function openEdit(s, mode) {
+  if (!s) return;
+  editCtx = { id: s.id, mode };
+  $("editTitle").textContent = mode === "approve" ? "확인하고 승인" : "가게 수정";
+  $("editSave").textContent = mode === "approve" ? "승인하고 지도에 올리기" : "저장";
+  ["name","menu","link","phone","addr","intro"].forEach(k => $("e_" + k).value = s[k] || "");
+  $("e_cat").value = CATS.includes(s.cat) ? s.cat : "기타";
+  $("e_ad").checked = !!s.ad; $("e_showTel").checked = !!s.showTel; $("e_yt").value = s.yt ? (s.ytShort ? "https://youtube.com/shorts/" : "https://youtu.be/") + s.yt : ""; $("e_example").checked = !!s.example; $("editMsg").textContent = "";
+  noPosWarned = false; $("editModal").classList.remove("hidden");
+  setTimeout(() => {
+    if (!pickMap) {
+      pickMap = L.map("pickMap").setView(CENTER, 15);
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { attribution: "© OpenStreetMap" }).addTo(pickMap);
+      pickMap.on("click", e => setPick(e.latlng.lat, e.latlng.lng));
+    }
+    pickMap.invalidateSize();
+    pickMap.setView(typeof s.lat === "number" ? [s.lat, s.lng] : CENTER, 16);
+    setPick(s.lat, s.lng);
+    $("e_geoMsg").textContent = pickPos ? "핀이 틀렸으면 맞는 자리를 다시 눌러 주세요." : "";
+    if (!pickPos && (s.addr || "").trim()) findByAddr();
+  }, 60);
+}
+async function findByAddr() {
+  const addr = $("e_addr").value.trim();
+  if (!addr) { $("e_geoMsg").textContent = "주소 칸을 먼저 채워 주세요."; return; }
+  $("e_geoMsg").textContent = "주소로 위치 찾는 중…";
+  try {
+    const g = await api("admin/geocode", { addr }, true);
+    if (g.exact) {
+      pickMap.setView([g.lat, g.lng], 17); setPick(g.lat, g.lng);
+      $("e_geoMsg").textContent = "✅ 주소로 핀을 찍었어요. 가게 자리가 맞는지 보고, 틀리면 맞는 곳을 눌러 주세요.";
+    } else {
+      pickMap.setView([g.lat, g.lng], 16);
+      $("e_geoMsg").textContent = "⚠️ 정확한 번지는 못 찾아서 근처로 옮겼어요. 가게 자리를 직접 눌러 주세요.";
+    }
+  } catch (err) { $("e_geoMsg").textContent = "⚠️ " + err.message; }
+}
+$("e_find").onclick = findByAddr;
+$("e_clearPos").onclick = () => setPick(null, null);
+$("editClose").onclick = () => $("editModal").classList.add("hidden");
+
+$("editSave").onclick = async () => {
+  if (!pickPos && !noPosWarned) { noPosWarned = true; $("editMsg").textContent = "위치가 아직 없어요! 지도에 핀이 안 나와요. 그래도 저장하려면 한 번 더 누르세요."; return; }
+  noPosWarned = false;
+  const body = { id: editCtx.id, name: $("e_name").value, cat: $("e_cat").value, menu: $("e_menu").value, link: $("e_link").value.trim(), phone: $("e_phone").value, showTel: $("e_showTel").checked, yt: $("e_yt").value.trim(), addr: $("e_addr").value, intro: $("e_intro").value, ad: $("e_ad").checked, example: $("e_example").checked, lat: pickPos ? pickPos.lat : null, lng: pickPos ? pickPos.lng : null };
+  try {
+    await api(editCtx.mode === "approve" ? "admin/approve" : "admin/update", body, true);
+    $("editModal").classList.add("hidden");
+    await loadAdmin(); loadHome();
+  } catch (err) { $("editMsg").textContent = err.message; }
+};
+
+// 쿠팡 바로가기 → 제휴 안내 → 이동
+$("cpBtn").onclick = () => $("cpModal").classList.remove("hidden");
+$("cpClose").onclick = () => $("cpModal").classList.add("hidden");
+$("cpGo").addEventListener("click", () => { track("coupang"); setTimeout(() => $("cpModal").classList.add("hidden"), 300); });
+$("cpModal").addEventListener("click", (e) => { if (e.target.id === "cpModal") $("cpModal").classList.add("hidden"); });
+
+// ── 📲 홈 화면에 추가 ──
+let installEvt = null;
+window.addEventListener("beforeinstallprompt", e => { e.preventDefault(); installEvt = e; });
+$("installBtn").onclick = async () => {
+  if (installEvt) { installEvt.prompt(); try { await installEvt.userChoice; } catch (e) {} installEvt = null; return; }
+  const ios = /iphone|ipad|ipod/i.test(navigator.userAgent);
+  $("installHelp").innerHTML = ios
+    ? "<b>아이폰</b><br>① Safari 아래쪽 <b>공유 버튼(□↑)</b>을 누르고<br>② <b>'홈 화면에 추가'</b>를 누르세요."
+    : "<b>갤럭시·안드로이드</b><br>① 오른쪽 위 <b>⋮ (점 3개)</b>를 누르고<br>② <b>'홈 화면에 추가'</b> 또는 <b>'앱 설치'</b>를 누르세요.<br><span class='text-[#888]'>삼성 인터넷은 아래쪽 ≡ 메뉴 → '현재 페이지 추가' → '홈 화면'</span>";
+  $("installHelp").classList.remove("hidden");
+};
+
+// ── ▶ 유튜브 영상 ──
+function openYt(s) {
+  if (!s || !s.yt) return;
+  paused = true; track(s.id);
+  $("ytTitle").textContent = s.name;
+  const box = $("ytBox");
+  box.style.maxWidth = s.ytShort ? "340px" : "100%";
+  box.style.aspectRatio = s.ytShort ? "9 / 16" : "16 / 9";
+  box.innerHTML = `<iframe src="https://www.youtube-nocookie.com/embed/${encodeURIComponent(s.yt)}?autoplay=1&playsinline=1&rel=0" title="${esc(s.name)} 영상" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen style="position:absolute;inset:0;width:100%;height:100%;border:0"></iframe>`;
+  $("ytBtns").innerHTML = btnHtml(s, "inline-block text-[13px] font-bold px-4 py-2.5 rounded-full bg-white text-black", "inline-block text-[13px] font-bold px-4 py-2.5 rounded-full bg-[#00C73C] text-white");
+  $("ytModal").classList.remove("hidden");
+}
+function closeYt() { $("ytModal").classList.add("hidden"); $("ytBox").innerHTML = ""; paused = false; }
+$("ytClose").onclick = closeYt;
+$("ytModal").addEventListener("click", e => { if (e.target.id === "ytModal") closeYt(); const a = e.target.closest("[data-click]"); if (a) track(a.dataset.click); const q = e.target.closest("[data-quick]"); if (q) closeYt(); });
+document.addEventListener("click", e => { const b = e.target.closest("[data-yt]"); if (b && !b.closest(".leaflet-popup")) openYt(STORES.find(s => s.id === b.dataset.yt)); });
+
+// ── 🛵 퀵 요청 ──
+function openQuick(store) {
+  $("qkForm").reset(); $("qkMsg").textContent = ""; $("qkBtn").disabled = false;
+  $("qkName").textContent = QUICK.name || "제휴 퀵";
+  $("qk_from").value = store ? `${store.name} (${store.addr || ""})` : "";
+  $("qkForm").dataset.store = store ? store.id : "";
+  $("qkModal").classList.remove("hidden");
+}
+$("quickBanner").onclick = () => openQuick(null);
+document.addEventListener("click", e => { const b = e.target.closest("[data-quick]"); if (b) { track(b.dataset.quick); openQuick(STORES.find(s => s.id === b.dataset.quick)); } });
+$("qkClose").onclick = () => $("qkModal").classList.add("hidden");
+$("qkForm").addEventListener("submit", async e => {
+  e.preventDefault();
+  const st = STORES.find(s => s.id === $("qkForm").dataset.store);
+  const body = { from: $("qk_from").value, to: $("qk_to").value, item: $("qk_item").value, phone: $("qk_phone").value, memo: $("qk_memo").value, agree: $("qk_agree").checked, storeId: st ? st.id : "", storeName: st ? st.name : "" };
+  $("qkBtn").disabled = true; $("qkMsg").className = "text-center text-[13px] text-[#666]"; $("qkMsg").textContent = "보내는 중…";
+  try {
+    await api("quick/request", body);
+    $("qkMsg").className = "text-center text-[14px] font-bold text-[#00A832]";
+    $("qkMsg").textContent = "요청이 접수됐어요! 기사님이 곧 전화드려요 🛵";
+    setTimeout(() => $("qkModal").classList.add("hidden"), 2500);
+  } catch (err) { $("qkMsg").className = "text-center text-[13px] text-red-600"; $("qkMsg").textContent = err.message; $("qkBtn").disabled = false; }
+});
+
+// ── 관리: 퀵 제휴 ──
+const won = (n) => (n || 0).toLocaleString("ko-KR") + "원";
+const QST = { new: ["대기", "#FF6A00"], accepted: ["접수(차감)", "#1E88E5"], done: ["완료", "#00A832"], skipped: ["업체 넘김", "#999"], refunded: ["환불됨", "#999"] };
+async function loadQuickAdmin() {
+  let d; try { d = await api("admin/quick", null, true); } catch (e) { $("quick-admin").textContent = e.message; return; }
+  const c = d.cfg, link = location.origin + "/quick.html";
+  $("quick-admin").innerHTML = `
+    <div class="flex items-center justify-between"><div class="text-[13px]">남은 충전금 <b class="text-[20px] ${d.balance < c.fee ? "text-red-600" : ""}">${won(d.balance)}</b></div>
+      <label class="flex items-center gap-1.5 font-bold"><input id="qa_on" type="checkbox" class="w-4 h-4" ${c.on ? "checked" : ""}> 손님 화면에 퀵 켜기</label></div>
+    <div class="grid grid-cols-2 gap-2 mt-3"><input id="qa_name" maxlength="30" value="${esc(c.name)}" placeholder="퀵 업체 이름" class="h-[40px] px-3 rounded-[10px] border bg-white"><div class="flex items-center gap-1"><input id="qa_fee" type="number" min="0" value="${c.fee}" class="h-[40px] w-full px-3 rounded-[10px] border bg-white"><span class="shrink-0">원/건</span></div></div>
+    <button data-qa="save" class="mt-2 w-full h-[38px] rounded-[10px] bg-black text-white font-bold">설정 저장</button>
+    <div class="mt-3 p-3 rounded-[10px] bg-white border leading-6">업체 화면 주소: <b class="break-all">${esc(link)}</b><br>업체 접속 코드: <b class="text-[16px] tracking-widest">${esc(c.key || "(저장하면 생겨요)")}</b> <button data-qa="newkey" class="ml-1 underline text-[#999]">코드 새로 만들기</button></div>
+    <div class="mt-3 flex gap-2"><input id="qa_amt" type="number" placeholder="충전 금액 (빼려면 -)" class="h-[40px] flex-1 min-w-0 px-3 rounded-[10px] border bg-white"><input id="qa_memo" maxlength="60" placeholder="메모 (입금자 등)" class="h-[40px] flex-1 min-w-0 px-3 rounded-[10px] border bg-white"><button data-qa="charge" class="shrink-0 h-[40px] px-3 rounded-[10px] bg-[#00C73C] text-white font-bold">충전</button></div>
+    <div class="mt-4 font-bold">최근 퀵 요청</div>
+    <div class="mt-2 grid gap-2">${d.reqs.length ? d.reqs.slice(0, 30).map(r => `<div class="rounded-[10px] bg-white border p-2.5"><div class="flex justify-between"><b>${esc(r.from)} → ${esc(r.to)}</b><span style="color:${(QST[r.status] || ["", "#999"])[1]}" class="font-bold shrink-0 ml-2">${(QST[r.status] || [r.status])[0]}</span></div><div class="text-[11px] text-[#777] mt-0.5">${new Date(r.createdAt).toLocaleString("ko-KR")} · ${esc(r.item || "")} · ${esc(r.phone)}${r.fee ? " · 수수료 " + won(r.fee) : ""}</div>${r.fee && !r.refunded ? `<button data-qa="refund" data-id="${esc(r.id)}" class="mt-1 text-[11px] underline text-[#999]">수수료 환불</button>` : ""}</div>`).join("") : '<div class="text-[#999]">아직 요청이 없어요</div>'}</div>
+    <div class="mt-4 font-bold">충전금 내역</div>
+    <div class="mt-2 grid gap-1">${d.ledger.length ? d.ledger.slice(0, 30).map(l => `<div class="flex justify-between bg-white rounded-[8px] px-2.5 py-1.5 border"><span class="truncate">${new Date(l.t).toLocaleDateString("ko-KR")} ${esc(l.memo || "")}</span><span class="shrink-0 ml-2 font-bold ${l.amount < 0 ? "text-red-600" : "text-[#00A832]"}">${l.amount > 0 ? "+" : ""}${won(l.amount)}</span></div>`).join("") : '<div class="text-[#999]">아직 내역이 없어요</div>'}</div>`;
+}
+$("quick-admin").addEventListener("click", async e => {
+  const b = e.target.closest("[data-qa]"); if (!b) return;
+  try {
+    if (b.dataset.qa === "save") await api("admin/quick/config", { on: $("qa_on").checked, name: $("qa_name").value, fee: $("qa_fee").value }, true);
+    if (b.dataset.qa === "newkey") { if (!confirm("코드를 바꾸면 업체가 새 코드로 다시 들어와야 해요. 바꿀까요?")) return; await api("admin/quick/config", { newKey: true }, true); }
+    if (b.dataset.qa === "charge") { await api("admin/quick/charge", { amount: $("qa_amt").value, memo: $("qa_memo").value }, true); }
+    if (b.dataset.qa === "refund") { if (!confirm("이 건의 수수료를 충전금으로 돌려줄까요?")) return; await api("admin/quick/refund", { id: b.dataset.id }, true); }
+    await loadQuickAdmin(); loadHome();
+  } catch (err) { alert(err.message); }
+});
+
+loadHome();
 </script>
 </body>
 </html>
