@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Disallow: /quick.html
+Disallow: /api/
+
+Sitemap: https://dongnebaedal.com/sitemap.xml

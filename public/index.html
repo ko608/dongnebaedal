@@ -3,8 +3,26 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>동네배달 - 둔산동</title>
-<meta name="description" content="둔산동 동네 가게를 지도에서 찾고 바로 주문하세요. 사장님 가게 등록은 무료예요.">
+<title>동네배달 - 우리 동네 생활지도 (둔산동)</title>
+<meta name="description" content="둔산동 맛집·편의점·꽃집·미용실을 지도에서 찾고 바로 주문·전화·퀵 배달까지. 사장님 가게 등록은 무료예요.">
+<link rel="canonical" href="https://dongnebaedal.com/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="동네배달">
+<meta property="og:url" content="https://dongnebaedal.com/">
+<meta property="og:title" content="동네배달 · 우리 동네 생활지도">
+<meta property="og:description" content="둔산동 가게를 지도에서 찾고 바로 주문·전화·퀵 배달까지!">
+<meta property="og:image" content="https://dongnebaedal.com/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:locale" content="ko_KR">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#00C73C">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" type="image/png" href="/favicon.png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-title" content="동네배달">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
 <script src="https://cdn.tailwindcss.com"></script>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -43,6 +61,8 @@
       <button id="qrSend" type="button" class="h-[46px] rounded-[12px] border font-bold text-[13px]">🔗 링크 보내기</button>
       <button id="qrSave" type="button" class="h-[46px] rounded-[12px] bg-[#00C73C] text-white font-bold text-[13px]">⬇️ QR 저장</button>
     </div>
+    <button id="installBtn" type="button" class="mt-2 w-full h-[44px] rounded-[12px] bg-[#FFF4D6] border border-[#FFD36B] font-bold text-[13px]">📲 내 폰 홈 화면에 동네배달 추가</button>
+    <div id="installHelp" class="hidden mt-2 text-[12px] text-left leading-6 bg-[#F7F7F7] rounded-[10px] p-3"></div>
     <button id="qrClose" type="button" class="mt-2 w-full h-[40px] text-[13px] text-[#888]">닫기</button>
   </div>
 </div>
@@ -64,6 +84,15 @@
       <button id="qkBtn" type="submit" class="w-full h-[52px] rounded-[12px] bg-black text-white font-bold text-[15px]">🛵 퀵 요청 보내기</button>
       <div id="qkMsg" class="text-center text-[13px] min-h-[1em]"></div>
     </form>
+  </div>
+</div>
+
+<!-- 유튜브 영상 창 -->
+<div id="ytModal" class="hidden fixed inset-0 z-50 bg-black/80 flex items-center justify-center px-4">
+  <div class="w-full max-w-[520px]">
+    <div class="flex justify-between items-center text-white mb-2"><b id="ytTitle" class="text-[15px] truncate"></b><button id="ytClose" type="button" class="text-[26px] px-2 leading-none">✕</button></div>
+    <div id="ytBox" class="relative w-full bg-black rounded-[14px] overflow-hidden mx-auto"></div>
+    <div id="ytBtns" class="mt-3 flex gap-2 justify-center"></div>
   </div>
 </div>
 
@@ -163,6 +192,7 @@
       <input id="e_link" maxlength="400" placeholder="https:// 주문 링크 (없으면 비워 두기)" class="w-full h-[44px] px-3 rounded-[10px] border">
       <div class="grid grid-cols-2 gap-2"><input id="e_phone" maxlength="20" placeholder="전화번호" class="h-[44px] px-3 rounded-[10px] border"><input id="e_addr" maxlength="80" placeholder="주소" class="h-[44px] px-3 rounded-[10px] border"></div>
       <textarea id="e_intro" maxlength="120" placeholder="한줄 소개" class="w-full h-[64px] p-3 rounded-[10px] border"></textarea>
+      <input id="e_yt" maxlength="200" placeholder="▶ 유튜브 영상 주소 (쇼츠도 돼요 · 없으면 비워 두기)" class="w-full h-[44px] px-3 rounded-[10px] border">
       <div class="flex flex-wrap gap-x-4 gap-y-2 text-[13px]"><label class="flex items-center gap-1.5"><input id="e_showTel" type="checkbox" class="w-4 h-4"> 📞 손님 전화 공개</label><label class="flex items-center gap-1.5"><input id="e_ad" type="checkbox" class="w-4 h-4"> 광고 자리에 노출</label><label class="flex items-center gap-1.5"><input id="e_example" type="checkbox" class="w-4 h-4"> 예시 가게</label></div>
       <div class="flex items-center justify-between mt-2"><div class="text-[12px] font-bold">📍 가게 위치 <span id="e_pos" class="font-normal text-[#999]"></span></div><button id="e_find" type="button" class="text-[12px] font-bold px-3 h-[32px] rounded-[8px] bg-[#23242B] text-white">🔎 주소로 찾기</button></div>
       <div id="e_geoMsg" class="text-[11px] text-[#666] min-h-[1em]"></div>
@@ -259,7 +289,7 @@ function renderAds() {
     <div class="slide h-[160px] p-4 bg-gradient-to-br ${BG[i % BG.length]} relative">
       <span class="absolute top-2 right-2 text-[10px] bg-black/55 text-white px-1.5 py-0.5 rounded">광고</span>
       <div class="flex gap-3 items-center h-full">
-        <div class="text-[46px] w-[64px] text-center">${EMOJI[s.cat] || "🍱"}</div>
+        ${s.yt ? `<button type="button" data-yt="${esc(s.id)}" class="relative shrink-0 w-[112px] h-[112px] rounded-[12px] overflow-hidden bg-black"><img src="https://i.ytimg.com/vi/${esc(s.yt)}/hqdefault.jpg" alt="" class="w-full h-full object-cover" loading="lazy"><span class="absolute inset-0 grid place-items-center"><span class="w-10 h-10 rounded-full bg-[#FF0000] text-white grid place-items-center text-[16px] shadow">▶</span></span></button>` : `<div class="text-[46px] w-[64px] text-center">${EMOJI[s.cat] || "🍱"}</div>`}
         <div class="flex-1 min-w-0">
           <div class="text-[11px] text-[#555]">${esc(s.cat)} · ${esc(s.addr)}</div>
           <div class="font-black text-[19px] truncate">${esc(s.name)}</div>
@@ -306,6 +336,7 @@ function popupHtml(s) {
     <div style="font-weight:800;font-size:13px">${esc(s.name)}${s.example ? ' <span style="font-size:10px;background:#9E9E9E;color:#fff;padding:1px 5px;border-radius:9px">예시</span>' : ""}</div>
     <div style="font-size:11px;color:#777;margin-top:2px">${esc(s.cat)} · ${esc(s.addr)}</div>
     <div style="margin-top:6px;font-size:11px;color:#444;background:#F9FAFB;padding:6px 8px;border-radius:8px">🍽️ ${esc(s.menu)}</div>
+    ${s.yt ? `<button type="button" data-yt="${esc(s.id)}" style="display:block;width:100%;margin-top:6px;background:#FF0000;color:#fff;text-align:center;padding:8px;border-radius:999px;font-size:12px;font-weight:700;border:0">▶ 가게 영상 보기</button>` : ""}
     ${actions(s).map(b => b.quick ? `<button type="button" data-quick="${esc(s.id)}" style="display:block;width:100%;margin-top:6px;background:#FFB300;color:#111;text-align:center;padding:8px;border-radius:999px;font-size:12px;font-weight:700;border:0">🛵 퀵으로 받기</button>` : `<a href="${esc(b.href)}" ${b.ext ? 'target="_blank" rel="noopener"' : ""} data-click="${esc(s.id)}" style="display:block;margin-top:6px;background:${b.call ? "#00C73C" : "black"};color:white;text-align:center;padding:8px;border-radius:999px;font-size:12px;font-weight:700;text-decoration:none">${b.label}</a>`).join("")}</div>`;
 }
 const pinIcon = (ad) => L.divIcon({ className: "", html: `<div style="width:30px;height:38px;background:${ad ? "#E53935" : "#FF6A00"};clip-path:polygon(50% 100%,0 0,100% 0);border-radius:4px 4px 0 0;display:grid;place-items:center;font-size:13px;padding-bottom:10px">${ad ? "⭐" : "📍"}</div>`, iconSize: [30, 38], iconAnchor: [15, 38], popupAnchor: [0, -34] });
@@ -315,7 +346,7 @@ function renderMap() {
     map = L.map("map").setView(CENTER, 15);
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { attribution: "© OpenStreetMap" }).addTo(map);
     markers = L.layerGroup().addTo(map);
-    map.on("popupopen", e => { const el = e.popup.getElement(); el.querySelectorAll("[data-click]").forEach(a => a.addEventListener("click", () => track(a.dataset.click), { once: true })); el.querySelectorAll("[data-quick]").forEach(b => b.addEventListener("click", ev => { ev.stopPropagation(); track(b.dataset.quick); openQuick(STORES.find(s => s.id === b.dataset.quick)); })); });
+    map.on("popupopen", e => { const el = e.popup.getElement(); el.querySelectorAll("[data-click]").forEach(a => a.addEventListener("click", () => track(a.dataset.click), { once: true })); el.querySelectorAll("[data-yt]").forEach(b => b.addEventListener("click", ev => { ev.stopPropagation(); openYt(STORES.find(s => s.id === b.dataset.yt)); })); el.querySelectorAll("[data-quick]").forEach(b => b.addEventListener("click", ev => { ev.stopPropagation(); track(b.dataset.quick); openQuick(STORES.find(s => s.id === b.dataset.quick)); })); });
   }
   markers.clearLayers();
   visible().filter(s => typeof s.lat === "number" && typeof s.lng === "number")
@@ -335,7 +366,7 @@ function renderList() {
       <div class="flex-1 min-w-0"><div class="font-bold text-[14px] truncate">${esc(s.name)}${badge} <span class="text-[11px] font-medium text-[#777]">· ${esc(s.cat)}</span></div>
       <div class="text-[12px] text-[#444] mt-1 truncate">${esc(s.menu)}</div>
       <div class="text-[11px] text-[#999] mt-1 truncate">${esc(s.addr)}${s.intro ? " · " + esc(s.intro) : ""}</div>
-      <div class="mt-2 flex items-center gap-2">${btnHtml(s, "inline-block text-[11px] font-bold px-3 py-1.5 rounded-full bg-black text-white", "inline-block text-[11px] font-bold px-3 py-1.5 rounded-full bg-[#00C73C] text-white")}${s.example ? '<span class="text-[10px] text-[#aaa]">예시 가게예요</span>' : ""}</div></div></div>`;
+      <div class="mt-2 flex flex-wrap items-center gap-2">${s.yt ? `<button type="button" data-yt="${esc(s.id)}" class="inline-block text-[11px] font-bold px-3 py-1.5 rounded-full bg-[#FF0000] text-white">▶ 영상</button>` : ""}${btnHtml(s, "inline-block text-[11px] font-bold px-3 py-1.5 rounded-full bg-black text-white", "inline-block text-[11px] font-bold px-3 py-1.5 rounded-full bg-[#00C73C] text-white")}${s.example ? '<span class="text-[10px] text-[#aaa]">예시 가게예요</span>' : ""}</div></div></div>`;
   }).join("") : '<div class="text-[12px] text-[#999] py-8 text-center border border-dashed rounded-xl">이 종류의 가게가 아직 없어요</div>';
 }
 $("store-list").addEventListener("click", e => { const a = e.target.closest("[data-click]"); if (a) track(a.dataset.click); });
@@ -399,7 +430,7 @@ async function loadAdmin() {
   $("approved-list").innerHTML = stores.length ? stores.map(s => `
     <div class="rounded-[14px] border p-4 ${s.example ? "bg-[#F5F5F5]" : s.ad ? "bg-[#FFF5F5] border-[#FFCDD2]" : "bg-[#F9FFF9]"}">
       <div class="font-bold text-[13px]">${esc(s.name)} · ${esc(s.cat)} ${s.example ? '<span class="text-[10px] bg-[#9E9E9E] text-white px-1.5 py-0.5 rounded-full">예시</span>' : ""}${s.ad && !s.example ? '<span class="text-[10px] bg-[#E53935] text-white px-1.5 py-0.5 rounded-full">광고 중</span>' : ""}</div>
-      <div class="text-[11px] text-[#666] mt-1">${esc(s.addr)} · ${esc(s.phone || "")}${s.showTel ? " (공개)" : ""} · ${typeof s.lat === "number" ? "📍위치 있음" : '<b class="text-[#E65100]">📍위치 없음</b>'} · 클릭 ${clicks[s.id] || 0}회</div>
+      <div class="text-[11px] text-[#666] mt-1">${esc(s.addr)} · ${esc(s.phone || "")}${s.showTel ? " (공개)" : ""} · ${s.yt ? "▶영상 · " : ""}${typeof s.lat === "number" ? "📍위치 있음" : '<b class="text-[#E65100]">📍위치 없음</b>'} · 클릭 ${clicks[s.id] || 0}회</div>
       <div class="text-[11px] text-[#444] mt-1">${esc(s.menu)}</div>
       <div class="flex gap-2 mt-3"><button data-act="edit" data-id="${esc(s.id)}" class="flex-1 h-8 rounded-full bg-white border text-[11px] font-bold">✏️ 수정</button>${s.example ? "" : `<button data-act="ad" data-id="${esc(s.id)}" class="flex-1 h-8 rounded-full ${s.ad ? "bg-[#E53935] text-white" : "bg-white border"} text-[11px] font-bold">${s.ad ? "광고 끄기" : "⭐ 광고 켜기"}</button>`}<button data-act="delete" data-id="${esc(s.id)}" class="flex-1 h-8 rounded-full bg-[#FFEBEE] text-[#D32F2F] text-[11px] font-bold">🗑️ 삭제</button></div></div>`).join("")
     : '<div class="text-[11px] text-[#999] py-4 text-center">노출 중인 가게가 없어요</div>';
@@ -432,7 +463,7 @@ function openEdit(s, mode) {
   $("editSave").textContent = mode === "approve" ? "승인하고 지도에 올리기" : "저장";
   ["name","menu","link","phone","addr","intro"].forEach(k => $("e_" + k).value = s[k] || "");
   $("e_cat").value = CATS.includes(s.cat) ? s.cat : "기타";
-  $("e_ad").checked = !!s.ad; $("e_showTel").checked = !!s.showTel; $("e_example").checked = !!s.example; $("editMsg").textContent = "";
+  $("e_ad").checked = !!s.ad; $("e_showTel").checked = !!s.showTel; $("e_yt").value = s.yt ? (s.ytShort ? "https://youtube.com/shorts/" : "https://youtu.be/") + s.yt : ""; $("e_example").checked = !!s.example; $("editMsg").textContent = "";
   noPosWarned = false; $("editModal").classList.remove("hidden");
   setTimeout(() => {
     if (!pickMap) {
@@ -469,7 +500,7 @@ $("editClose").onclick = () => $("editModal").classList.add("hidden");
 $("editSave").onclick = async () => {
   if (!pickPos && !noPosWarned) { noPosWarned = true; $("editMsg").textContent = "위치가 아직 없어요! 지도에 핀이 안 나와요. 그래도 저장하려면 한 번 더 누르세요."; return; }
   noPosWarned = false;
-  const body = { id: editCtx.id, name: $("e_name").value, cat: $("e_cat").value, menu: $("e_menu").value, link: $("e_link").value.trim(), phone: $("e_phone").value, showTel: $("e_showTel").checked, addr: $("e_addr").value, intro: $("e_intro").value, ad: $("e_ad").checked, example: $("e_example").checked, lat: pickPos ? pickPos.lat : null, lng: pickPos ? pickPos.lng : null };
+  const body = { id: editCtx.id, name: $("e_name").value, cat: $("e_cat").value, menu: $("e_menu").value, link: $("e_link").value.trim(), phone: $("e_phone").value, showTel: $("e_showTel").checked, yt: $("e_yt").value.trim(), addr: $("e_addr").value, intro: $("e_intro").value, ad: $("e_ad").checked, example: $("e_example").checked, lat: pickPos ? pickPos.lat : null, lng: pickPos ? pickPos.lng : null };
   try {
     await api(editCtx.mode === "approve" ? "admin/approve" : "admin/update", body, true);
     $("editModal").classList.add("hidden");
@@ -482,6 +513,35 @@ $("cpBtn").onclick = () => $("cpModal").classList.remove("hidden");
 $("cpClose").onclick = () => $("cpModal").classList.add("hidden");
 $("cpGo").addEventListener("click", () => { track("coupang"); setTimeout(() => $("cpModal").classList.add("hidden"), 300); });
 $("cpModal").addEventListener("click", (e) => { if (e.target.id === "cpModal") $("cpModal").classList.add("hidden"); });
+
+// ── 📲 홈 화면에 추가 ──
+let installEvt = null;
+window.addEventListener("beforeinstallprompt", e => { e.preventDefault(); installEvt = e; });
+$("installBtn").onclick = async () => {
+  if (installEvt) { installEvt.prompt(); try { await installEvt.userChoice; } catch (e) {} installEvt = null; return; }
+  const ios = /iphone|ipad|ipod/i.test(navigator.userAgent);
+  $("installHelp").innerHTML = ios
+    ? "<b>아이폰</b><br>① Safari 아래쪽 <b>공유 버튼(□↑)</b>을 누르고<br>② <b>'홈 화면에 추가'</b>를 누르세요."
+    : "<b>갤럭시·안드로이드</b><br>① 오른쪽 위 <b>⋮ (점 3개)</b>를 누르고<br>② <b>'홈 화면에 추가'</b> 또는 <b>'앱 설치'</b>를 누르세요.<br><span class='text-[#888]'>삼성 인터넷은 아래쪽 ≡ 메뉴 → '현재 페이지 추가' → '홈 화면'</span>";
+  $("installHelp").classList.remove("hidden");
+};
+
+// ── ▶ 유튜브 영상 ──
+function openYt(s) {
+  if (!s || !s.yt) return;
+  paused = true; track(s.id);
+  $("ytTitle").textContent = s.name;
+  const box = $("ytBox");
+  box.style.maxWidth = s.ytShort ? "340px" : "100%";
+  box.style.aspectRatio = s.ytShort ? "9 / 16" : "16 / 9";
+  box.innerHTML = `<iframe src="https://www.youtube-nocookie.com/embed/${encodeURIComponent(s.yt)}?autoplay=1&playsinline=1&rel=0" title="${esc(s.name)} 영상" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen style="position:absolute;inset:0;width:100%;height:100%;border:0"></iframe>`;
+  $("ytBtns").innerHTML = btnHtml(s, "inline-block text-[13px] font-bold px-4 py-2.5 rounded-full bg-white text-black", "inline-block text-[13px] font-bold px-4 py-2.5 rounded-full bg-[#00C73C] text-white");
+  $("ytModal").classList.remove("hidden");
+}
+function closeYt() { $("ytModal").classList.add("hidden"); $("ytBox").innerHTML = ""; paused = false; }
+$("ytClose").onclick = closeYt;
+$("ytModal").addEventListener("click", e => { if (e.target.id === "ytModal") closeYt(); const a = e.target.closest("[data-click]"); if (a) track(a.dataset.click); const q = e.target.closest("[data-quick]"); if (q) closeYt(); });
+document.addEventListener("click", e => { const b = e.target.closest("[data-yt]"); if (b && !b.closest(".leaflet-popup")) openYt(STORES.find(s => s.id === b.dataset.yt)); });
 
 // ── 🛵 퀵 요청 ──
 function openQuick(store) {

@@ -1,0 +1,15 @@
+{
+  "name": "동네배달 - 우리 동네 생활지도",
+  "short_name": "동네배달",
+  "description": "우리 동네 가게를 지도에서 찾고 바로 주문·전화·퀵 배달",
+  "start_url": "/?src=app",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#FFFFFF",
+  "theme_color": "#00C73C",
+  "lang": "ko",
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}
