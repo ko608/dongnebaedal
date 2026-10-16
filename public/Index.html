@@ -23,10 +23,24 @@
 <body class="bg-[#F6F7F8]">
 <div class="mx-auto max-w-[520px] bg-white min-h-screen flex flex-col shadow">
 
-<header class="sticky top-0 z-20 bg-white border-b px-5 h-[56px] flex items-center justify-between">
-  <div class="flex items-center gap-2"><div class="w-7 h-7 rounded-full bg-[#00C73C] text-white grid place-items-center font-black text-[13px]">동</div><b class="text-[15px]">동네배달</b><span class="text-[11px] px-1.5 py-0.5 rounded-full bg-[#F1F8F2] text-[#00A832] ml-1">둔산동</span></div>
-  <button id="shareBtn" class="text-[12px] border rounded-full px-3 py-1">공유</button>
+<header class="sticky top-0 z-20 bg-white border-b px-4 h-[56px] flex items-center justify-between gap-2 whitespace-nowrap">
+  <div class="flex items-center gap-2"><div class="w-7 h-7 rounded-full bg-[#00C73C] text-white grid place-items-center font-black text-[13px]">동</div><b class="text-[15px]">동네배달</b><span class="text-[11px] px-1.5 py-0.5 rounded-full bg-[#F1F8F2] text-[#00A832] ml-1 max-[380px]:hidden">둔산동</span></div>
+  <div class="flex items-center gap-1.5">
+    <button id="cpBtn" type="button" class="h-[30px] px-2.5 rounded-full bg-[#E52528] text-white text-[12px] font-bold whitespace-nowrap shadow-sm">🛒 쿠팡 바로가기</button>
+    <button id="shareBtn" class="text-[12px] border rounded-full px-2.5 h-[30px] whitespace-nowrap">공유</button>
+  </div>
 </header>
+
+<!-- 쿠팡 제휴 안내 창 -->
+<div id="cpModal" class="hidden fixed inset-0 z-50 bg-black/50 flex items-center justify-center px-6">
+  <div class="bg-white w-full max-w-[360px] rounded-[18px] p-5 text-center">
+    <div class="text-[28px]">🛒</div>
+    <h3 class="font-extrabold text-[16px] mt-1">쿠팡으로 이동해요</h3>
+    <p class="text-[13px] text-[#555] mt-3 leading-6 bg-[#F7F7F7] rounded-[12px] p-3">이 사이트는 <b>쿠팡 파트너스 활동</b>의 일환으로, 이에 따른 일정액의 수수료를 제공받습니다.</p>
+    <a id="cpGo" href="https://link.coupang.com/a/hRBgeOU4VU" target="_blank" rel="noopener sponsored" class="mt-4 block h-[48px] leading-[48px] rounded-[12px] bg-[#E52528] text-white font-bold">확인하고 쿠팡 가기</a>
+    <button id="cpClose" type="button" class="mt-2 w-full h-[40px] text-[13px] text-[#888]">닫기</button>
+  </div>
+</div>
 
 <!-- 홈 -->
 <div id="tab-home" class="flex-1">
@@ -44,11 +58,7 @@
     <div class="text-[11px] text-[#999] mt-2 text-center">주황 핀을 누르면 가게 정보와 주문 버튼이 나와요</div>
     <div id="store-list" class="mt-4 grid grid-cols-1 gap-3 min-w-0"></div>
 
-    <!-- 쿠팡 (작게) -->
-    <a href="https://link.coupang.com/a/hRBgeOU4VU" target="_blank" rel="noopener sponsored" class="mt-5 flex items-center justify-between text-[12px] px-3 py-2 rounded-[10px] bg-[#F7F7F7] text-[#555]">
-      <span>🛒 쿠팡 쇼핑 바로가기</span><span>›</span>
-    </a>
-    <p class="text-[10px] text-[#aaa] mt-1 px-1 leading-4">이 사이트는 쿠팡 파트너스 활동의 일환으로, 이에 따른 일정액의 수수료를 제공받습니다.</p>
+    <p class="text-[10px] text-[#aaa] mt-5 px-1 leading-4">이 사이트는 쿠팡 파트너스 활동의 일환으로, 이에 따른 일정액의 수수료를 제공받습니다.</p>
   </div>
 </div>
 
@@ -376,6 +386,12 @@ $("editSave").onclick = async () => {
     await loadAdmin(); loadHome();
   } catch (err) { $("editMsg").textContent = err.message; }
 };
+
+// 쿠팡 바로가기 → 제휴 안내 → 이동
+$("cpBtn").onclick = () => $("cpModal").classList.remove("hidden");
+$("cpClose").onclick = () => $("cpModal").classList.add("hidden");
+$("cpGo").addEventListener("click", () => { track("coupang"); setTimeout(() => $("cpModal").classList.add("hidden"), 300); });
+$("cpModal").addEventListener("click", (e) => { if (e.target.id === "cpModal") $("cpModal").classList.add("hidden"); });
 
 loadHome();
 </script>
