@@ -120,7 +120,8 @@
     <div id="chips" class="hide-scroll flex gap-2 overflow-x-auto mt-4 pb-1"></div>
 
     <div id="map" class="border mt-3"></div>
-    <div class="text-[11px] text-[#999] mt-2 text-center">핀을 누르면 가게 정보와 주문·전화 버튼이 나와요</div>
+    <div id="legend" class="flex flex-wrap justify-center gap-x-3 gap-y-1 text-[11px] text-[#555] mt-2"></div>
+    <div class="text-[11px] text-[#999] mt-1 text-center">핀을 누르면 가게 정보와 주문·전화 버튼이 나와요</div>
     <button id="quickBanner" type="button" class="hidden mt-4 w-full rounded-[16px] p-4 text-left bg-gradient-to-r from-[#FFF4D6] to-[#FFE3A3] border border-[#FFD36B] flex items-center gap-3">
       <span class="text-[34px]">🛵</span>
       <span class="flex-1 min-w-0"><b class="block text-[15px]">동네 퀵 부르기</b><span class="block text-[12px] text-[#555]">꽃·반찬·서류·물건, 동네 어디든 바로 배달</span></span>
@@ -339,7 +340,28 @@ function popupHtml(s) {
     ${s.yt ? `<button type="button" data-yt="${esc(s.id)}" style="display:block;width:100%;margin-top:6px;background:#FF0000;color:#fff;text-align:center;padding:8px;border-radius:999px;font-size:12px;font-weight:700;border:0">▶ 가게 영상 보기</button>` : ""}
     ${actions(s).map(b => b.quick ? `<button type="button" data-quick="${esc(s.id)}" style="display:block;width:100%;margin-top:6px;background:#FFB300;color:#111;text-align:center;padding:8px;border-radius:999px;font-size:12px;font-weight:700;border:0">🛵 퀵으로 받기</button>` : `<a href="${esc(b.href)}" ${b.ext ? 'target="_blank" rel="noopener"' : ""} data-click="${esc(s.id)}" style="display:block;margin-top:6px;background:${b.call ? "#00C73C" : "black"};color:white;text-align:center;padding:8px;border-radius:999px;font-size:12px;font-weight:700;text-decoration:none">${b.label}</a>`).join("")}</div>`;
 }
-const pinIcon = (ad) => L.divIcon({ className: "", html: `<div style="width:30px;height:38px;background:${ad ? "#E53935" : "#FF6A00"};clip-path:polygon(50% 100%,0 0,100% 0);border-radius:4px 4px 0 0;display:grid;place-items:center;font-size:13px;padding-bottom:10px">${ad ? "⭐" : "📍"}</div>`, iconSize: [30, 38], iconAnchor: [15, 38], popupAnchor: [0, -34] });
+// 업종별 핀 색깔
+const GROUPS = [
+  { name: "음식", color: "#FF6A00", cats: ["치킨","한식","분식","중식","일식","피자","야식","반찬"] },
+  { name: "카페·디저트", color: "#8D5524", cats: ["카페","디저트"] },
+  { name: "편의점·생활", color: "#1E88E5", cats: ["편의점","세탁소","생활","기타"] },
+  { name: "약국", color: "#00A86B", cats: ["약국"] },
+  { name: "꽃집", color: "#EC407A", cats: ["꽃집"] },
+  { name: "미용", color: "#8E24AA", cats: ["미용실"] },
+];
+const groupOf = (cat) => GROUPS.find(g => g.cats.includes(cat)) || GROUPS[2];
+const pinIcon = (ad, cat) => {
+  const col = cat ? groupOf(cat).color : "#FF6A00", sz = ad ? 40 : 34;
+  return L.divIcon({ className: "", html: `<div style="position:relative;width:${sz}px;height:${sz + 10}px">
+    <div style="position:absolute;left:0;top:0;width:${sz}px;height:${sz}px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:${col};border:${ad ? "3px solid #FFC107" : "2px solid #fff"};box-shadow:0 2px 5px rgba(0,0,0,.35)"></div>
+    <div style="position:absolute;left:0;top:0;width:${sz}px;height:${sz}px;display:grid;place-items:center;font-size:${ad ? 19 : 16}px">${cat ? (EMOJI[cat] || "📍") : "📍"}</div>
+    ${ad ? '<div style="position:absolute;right:-6px;top:-8px;font-size:14px">⭐</div>' : ""}</div>`,
+    iconSize: [sz, sz + 10], iconAnchor: [sz / 2, sz + 6], popupAnchor: [0, -sz] });
+};
+function renderLegend() {
+  const used = GROUPS.filter(g => STORES.some(s => typeof s.lat === "number" && g.cats.includes(s.cat)));
+  $("legend").innerHTML = used.map(g => `<span class="inline-flex items-center gap-1"><span style="width:10px;height:10px;border-radius:99px;background:${g.color};display:inline-block"></span>${g.name}</span>`).join("") + (STORES.some(s => s.ad && !s.example) ? '<span class="inline-flex items-center gap-1">⭐ 광고</span>' : "");
+}
 function visible(){ return STORES.filter(s => filter === "전체" || s.cat === filter); }
 function renderMap() {
   if (!map) {
@@ -350,7 +372,7 @@ function renderMap() {
   }
   markers.clearLayers();
   visible().filter(s => typeof s.lat === "number" && typeof s.lng === "number")
-    .forEach(s => L.marker([s.lat, s.lng], { icon: pinIcon(s.ad && !s.example) }).bindPopup(popupHtml(s), { maxWidth: 240 }).addTo(markers));
+    .forEach(s => L.marker([s.lat, s.lng], { icon: pinIcon(s.ad && !s.example, s.cat), zIndexOffset: s.ad && !s.example ? 1000 : 0 }).bindPopup(popupHtml(s), { maxWidth: 240 }).addTo(markers));
   setTimeout(() => map.invalidateSize(), 50);
 }
 function renderChips() {
@@ -376,7 +398,7 @@ async function loadHome() {
   try { STORES = (await api("stores")).stores || []; }
   catch (e) { $("store-list").innerHTML = `<div class="text-[12px] text-red-600 text-center py-6">${esc(e.message)}</div>`; STORES = []; }
   renderAds(); renderChips(); renderList();
-  try { renderMap(); } catch (e) { $("map").innerHTML = '<div class="h-full grid place-items-center text-[12px] text-[#999]">지도를 불러오지 못했어요. 아래 목록에서 가게를 찾아 주세요.</div>'; }
+  try { renderLegend(); renderMap(); } catch (e) { $("map").innerHTML = '<div class="h-full grid place-items-center text-[12px] text-[#999]">지도를 불러오지 못했어요. 아래 목록에서 가게를 찾아 주세요.</div>'; }
 }
 
 // ── 탭 ──
@@ -453,7 +475,7 @@ let editCtx = null, pickMap = null, pickMarker = null, pickPos = null, noPosWarn
 function setPick(lat, lng) {
   pickPos = (typeof lat === "number" && typeof lng === "number") ? { lat, lng } : null;
   if (pickMarker) { pickMarker.remove(); pickMarker = null; }
-  if (pickPos) { pickMarker = L.marker([lat, lng], { icon: pinIcon(false) }).addTo(pickMap); }
+  if (pickPos) { pickMarker = L.marker([lat, lng], { icon: pinIcon(false, $("e_cat").value) }).addTo(pickMap); }
   $("e_pos").textContent = pickPos ? "(지정됨)" : "(아직 없음)";
 }
 function openEdit(s, mode) {
