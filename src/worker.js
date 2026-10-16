@@ -68,6 +68,43 @@ async function pwMatches(pw) {
   const got = [...new Uint8Array(bits)].map((b) => b.toString(16).padStart(2, "0")).join("");
   return got === PW_HASH;
 }
+
+// ── 주소 → 위치 찾기 ──
+// 카카오 키(KAKAO_KEY, Secret)가 있으면 카카오로, 없으면 OpenStreetMap으로 찾아요.
+async function kakaoFind(q, key) {
+  const h = { Authorization: "KakaoAK " + key };
+  for (const kind of ["address", "keyword"]) {
+    const r = await fetch(`https://dapi.kakao.com/v2/local/search/${kind}.json?size=1&query=` + encodeURIComponent(q), { headers: h });
+    if (!r.ok) continue;
+    const d = await r.json();
+    const doc = d.documents && d.documents[0];
+    if (doc) return { lat: parseFloat(doc.y), lng: parseFloat(doc.x), label: doc.address_name || doc.place_name || q };
+  }
+  return null;
+}
+async function osmFind(q) {
+  const url = "https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&countrycodes=kr&accept-language=ko&viewbox=127.2,36.5,127.6,36.2&q=" + encodeURIComponent(q);
+  const r = await fetch(url, { headers: { "User-Agent": "dongnebaedal/1.0 (ko608@naver.com)" } });
+  if (!r.ok) return null;
+  const d = await r.json();
+  return d[0] ? { lat: parseFloat(d[0].lat), lng: parseFloat(d[0].lon), label: d[0].display_name } : null;
+}
+async function geocode(addr, env) {
+  let q = clip(addr, 80).replace(/\s+/g, " ");
+  if (!q) return null;
+  if (!/대전|서울|부산|대구|인천|광주|울산|세종|경기|강원|충북|충남|충청|전북|전남|전라|경북|경남|경상|제주/.test(q)) q = "대전 " + q;
+  const words = q.split(" ");
+  // 전체 주소로 못 찾으면 뒤에서 한 단어씩 줄여서 대략 위치라도 찾아요.
+  for (let n = words.length; n >= 2; n--) {
+    const part = words.slice(0, n).join(" ");
+    let hit = null;
+    try { hit = env.KAKAO_KEY ? await kakaoFind(part, env.KAKAO_KEY) : null; } catch (e) {}
+    if (!hit) { try { hit = await osmFind(part); } catch (e) {} }
+    if (hit && isFinite(hit.lat) && isFinite(hit.lng)) return { ...hit, exact: n === words.length, source: env.KAKAO_KEY ? "kakao" : "osm" };
+  }
+  return null;
+}
+
 async function isAdmin(request, env) {
   const pw = (request.headers.get("x-admin-pw") || "").trim();
   if (!pw || pw.length > 100) return false;
@@ -121,6 +158,10 @@ async function handleApi(request, env, path) {
       return json({ stores, pending, clicks });
     }
     if (method !== "POST") return json({ error: "잘못된 요청이에요." }, 405);
+    if (act === "geocode") {
+      const hit = await geocode(body.addr, env);
+      return hit ? json({ ok: true, ...hit }) : json({ error: "주소로 위치를 찾지 못했어요. 지도에서 직접 눌러 주세요." }, 404);
+    }
     const id = clip(body.id, 40);
     let stores = await getList(env, "stores");
     let pending = await getList(env, "pending");
