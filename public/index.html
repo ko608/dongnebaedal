@@ -8,6 +8,7 @@
 <script src="https://cdn.tailwindcss.com"></script>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800;900&display=swap" rel="stylesheet">
 <style>
 *{font-family:'Noto Sans KR',sans-serif}
@@ -23,10 +24,39 @@
 <body class="bg-[#F6F7F8]">
 <div class="mx-auto max-w-[520px] bg-white min-h-screen flex flex-col shadow">
 
-<header class="sticky top-0 z-20 bg-white border-b px-5 h-[56px] flex items-center justify-between">
-  <div class="flex items-center gap-2"><div class="w-7 h-7 rounded-full bg-[#00C73C] text-white grid place-items-center font-black text-[13px]">동</div><b class="text-[15px]">동네배달</b><span class="text-[11px] px-1.5 py-0.5 rounded-full bg-[#F1F8F2] text-[#00A832] ml-1">둔산동</span></div>
-  <button id="shareBtn" class="text-[12px] border rounded-full px-3 py-1">공유</button>
+<header class="sticky top-0 z-20 bg-white border-b px-4 h-[56px] flex items-center justify-between gap-2 whitespace-nowrap">
+  <div class="flex items-center gap-2"><div class="w-7 h-7 rounded-full bg-[#00C73C] text-white grid place-items-center font-black text-[13px]">동</div><b class="text-[15px]">동네배달</b><span class="text-[11px] px-1.5 py-0.5 rounded-full bg-[#F1F8F2] text-[#00A832] ml-1 max-[380px]:hidden">둔산동</span></div>
+  <div class="flex items-center gap-1.5">
+    <button id="cpBtn" type="button" class="h-[30px] px-2.5 rounded-full bg-[#E52528] text-white text-[12px] font-bold whitespace-nowrap shadow-sm">🛒 쿠팡 바로가기</button>
+    <button id="shareBtn" class="text-[12px] border rounded-full px-2.5 h-[30px] whitespace-nowrap">공유</button>
+  </div>
 </header>
+
+<!-- 공유 QR 창 -->
+<div id="qrModal" class="hidden fixed inset-0 z-50 bg-black/50 flex items-center justify-center px-6">
+  <div class="bg-white w-full max-w-[360px] rounded-[18px] p-5 text-center">
+    <h3 class="font-extrabold text-[16px]">동네배달 공유하기</h3>
+    <p class="text-[12px] text-[#666] mt-1">휴대폰 카메라로 찍으면 바로 열려요</p>
+    <canvas id="qrCanvas" class="mx-auto mt-3 w-[220px] h-[220px] rounded-[12px]"></canvas>
+    <div id="qrUrl" class="text-[11px] text-[#999] mt-2 break-all"></div>
+    <div class="grid grid-cols-2 gap-2 mt-4">
+      <button id="qrSend" type="button" class="h-[46px] rounded-[12px] border font-bold text-[13px]">🔗 링크 보내기</button>
+      <button id="qrSave" type="button" class="h-[46px] rounded-[12px] bg-[#00C73C] text-white font-bold text-[13px]">⬇️ QR 저장</button>
+    </div>
+    <button id="qrClose" type="button" class="mt-2 w-full h-[40px] text-[13px] text-[#888]">닫기</button>
+  </div>
+</div>
+
+<!-- 쿠팡 제휴 안내 창 -->
+<div id="cpModal" class="hidden fixed inset-0 z-50 bg-black/50 flex items-center justify-center px-6">
+  <div class="bg-white w-full max-w-[360px] rounded-[18px] p-5 text-center">
+    <div class="text-[28px]">🛒</div>
+    <h3 class="font-extrabold text-[16px] mt-1">쿠팡으로 이동해요</h3>
+    <p class="text-[13px] text-[#555] mt-3 leading-6 bg-[#F7F7F7] rounded-[12px] p-3">이 사이트는 <b>쿠팡 파트너스 활동</b>의 일환으로, 이에 따른 일정액의 수수료를 제공받습니다.</p>
+    <a id="cpGo" href="https://link.coupang.com/a/hRBgeOU4VU" target="_blank" rel="noopener sponsored" class="mt-4 block h-[48px] leading-[48px] rounded-[12px] bg-[#E52528] text-white font-bold">확인하고 쿠팡 가기</a>
+    <button id="cpClose" type="button" class="mt-2 w-full h-[40px] text-[13px] text-[#888]">닫기</button>
+  </div>
+</div>
 
 <!-- 홈 -->
 <div id="tab-home" class="flex-1">
@@ -44,11 +74,7 @@
     <div class="text-[11px] text-[#999] mt-2 text-center">주황 핀을 누르면 가게 정보와 주문 버튼이 나와요</div>
     <div id="store-list" class="mt-4 grid grid-cols-1 gap-3 min-w-0"></div>
 
-    <!-- 쿠팡 (작게) -->
-    <a href="https://link.coupang.com/a/hRBgeOU4VU" target="_blank" rel="noopener sponsored" class="mt-5 flex items-center justify-between text-[12px] px-3 py-2 rounded-[10px] bg-[#F7F7F7] text-[#555]">
-      <span>🛒 쿠팡 쇼핑 바로가기</span><span>›</span>
-    </a>
-    <p class="text-[10px] text-[#aaa] mt-1 px-1 leading-4">이 사이트는 쿠팡 파트너스 활동의 일환으로, 이에 따른 일정액의 수수료를 제공받습니다.</p>
+    <p class="text-[10px] text-[#aaa] mt-5 px-1 leading-4">이 사이트는 쿠팡 파트너스 활동의 일환으로, 이에 따른 일정액의 수수료를 제공받습니다.</p>
   </div>
 </div>
 
@@ -86,11 +112,9 @@
   </div>
 </div>
 
-<footer class="px-5 py-6 text-[10.5px] leading-5 text-[#999] border-t mt-6">
-  동네배달 · 운영 한아름 (대표 하미숙) · 사업자등록번호 727-25-02237<br>
-  통신판매업신고 제2026-대전서구-1016호 · 대전광역시 서구 계룡로584번길 24, 스마트시티 204호<br>
-  문의 010-9472-5785 · ko608@naver.com · <a href="/privacy.html" class="underline">개인정보처리방침</a><br>
-  주문과 배달은 각 가게와 주문 앱(쿠팡이츠·배민)에서 이루어지며, 동네배달은 가게 정보를 소개합니다.
+<footer class="px-5 py-5 text-[10.5px] leading-5 text-[#aaa] border-t mt-6 text-center">
+  주문과 배달은 각 가게와 주문 앱(쿠팡이츠·배민)에서 이루어지며, 동네배달은 가게 정보를 소개합니다.<br>
+  <a href="/privacy.html" class="underline">개인정보처리방침</a>
 </footer>
 
 <nav class="sticky bottom-0 bg-white border-t flex h-[64px] text-[11px] z-20">
@@ -112,7 +136,8 @@
       <div class="grid grid-cols-2 gap-2"><input id="e_phone" maxlength="20" placeholder="전화번호" class="h-[44px] px-3 rounded-[10px] border"><input id="e_addr" maxlength="80" placeholder="주소" class="h-[44px] px-3 rounded-[10px] border"></div>
       <textarea id="e_intro" maxlength="120" placeholder="한줄 소개" class="w-full h-[64px] p-3 rounded-[10px] border"></textarea>
       <div class="flex gap-4 text-[13px]"><label class="flex items-center gap-1.5"><input id="e_ad" type="checkbox" class="w-4 h-4"> 광고 자리에 노출</label><label class="flex items-center gap-1.5"><input id="e_example" type="checkbox" class="w-4 h-4"> 예시 가게</label></div>
-      <div class="text-[12px] font-bold mt-2">📍 지도에서 가게 위치를 눌러 주세요 <span id="e_pos" class="font-normal text-[#999]"></span></div>
+      <div class="flex items-center justify-between mt-2"><div class="text-[12px] font-bold">📍 가게 위치 <span id="e_pos" class="font-normal text-[#999]"></span></div><button id="e_find" type="button" class="text-[12px] font-bold px-3 h-[32px] rounded-[8px] bg-[#23242B] text-white">🔎 주소로 찾기</button></div>
+      <div id="e_geoMsg" class="text-[11px] text-[#666] min-h-[1em]"></div>
       <div id="pickMap" class="border"></div>
       <button id="e_clearPos" type="button" class="text-[11px] underline text-[#999]">위치 지우기</button>
     </div>
@@ -145,10 +170,43 @@ function track(id){ try{ navigator.sendBeacon("/api/click", new Blob([JSON.strin
 ["f_cat","e_cat"].forEach(id => { $(id).insertAdjacentHTML("beforeend", CATS.map(c => `<option>${c}</option>`).join("")); });
 
 // ── 공유 ──
-$("shareBtn").onclick = async () => {
-  const url = location.origin;
-  try { if (navigator.share) { await navigator.share({ title: "동네배달 둔산동", url }); return; } } catch(e) { return; }
-  try { await navigator.clipboard.writeText(url); $("shareBtn").textContent = "복사됨"; setTimeout(()=>$("shareBtn").textContent="공유",1500); } catch(e) {}
+// ── 공유: QR 코드 ──
+const SITE_URL = location.origin + "/";
+function drawQR(canvas, url, px) {
+  const qr = qrcode(0, "M"); qr.addData(url); qr.make();
+  const n = qr.getModuleCount(), quiet = 2, cell = Math.floor(px / (n + quiet * 2));
+  const size = cell * (n + quiet * 2);
+  canvas.width = size; canvas.height = size;
+  const c = canvas.getContext("2d");
+  c.fillStyle = "#fff"; c.fillRect(0, 0, size, size); c.fillStyle = "#111";
+  for (let r = 0; r < n; r++) for (let k = 0; k < n; k++) if (qr.isDark(r, k)) c.fillRect((k + quiet) * cell, (r + quiet) * cell, cell, cell);
+  return canvas;
+}
+$("shareBtn").onclick = () => {
+  try { drawQR($("qrCanvas"), SITE_URL, 440); } catch (e) {}
+  $("qrUrl").textContent = SITE_URL;
+  $("qrModal").classList.remove("hidden");
+};
+$("qrClose").onclick = () => $("qrModal").classList.add("hidden");
+$("qrModal").addEventListener("click", (e) => { if (e.target.id === "qrModal") $("qrModal").classList.add("hidden"); });
+$("qrSend").onclick = async () => {
+  try { if (navigator.share) { await navigator.share({ title: "동네배달 둔산동", text: "우리 동네 맛집 지도, 바로 주문까지!", url: SITE_URL }); return; } } catch (e) { return; }
+  try { await navigator.clipboard.writeText(SITE_URL); $("qrSend").textContent = "✅ 복사됨"; setTimeout(() => $("qrSend").textContent = "🔗 링크 보내기", 1500); } catch (e) {}
+};
+// 가게·전단지에 붙이기 좋은 QR 카드 이미지로 저장
+$("qrSave").onclick = () => {
+  const W = 900, H = 1200, card = document.createElement("canvas"); card.width = W; card.height = H;
+  const c = card.getContext("2d");
+  const g = c.createLinearGradient(0, 0, 0, H); g.addColorStop(0, "#FFF8E1"); g.addColorStop(1, "#FFE9A8");
+  c.fillStyle = g; c.fillRect(0, 0, W, H);
+  c.textAlign = "center"; c.fillStyle = "#00A832"; c.font = "bold 44px sans-serif"; c.fillText("둔산동 맛집 지도", W / 2, 150);
+  c.fillStyle = "#23242B"; c.font = "900 96px sans-serif"; c.fillText("동네배달", W / 2, 260);
+  c.fillStyle = "#fff"; c.beginPath(); c.roundRect(150, 320, 600, 600, 36); c.fill();
+  c.drawImage(drawQR(document.createElement("canvas"), SITE_URL, 540), 180, 350, 540, 540);
+  c.fillStyle = "#23242B"; c.font = "bold 46px sans-serif"; c.fillText("📱 카메라로 찍어 보세요", W / 2, 1010);
+  c.fillStyle = "#666"; c.font = "34px sans-serif"; c.fillText("우리 동네 가게를 지도에서 찾고 바로 주문!", W / 2, 1070);
+  c.fillStyle = "#999"; c.font = "28px sans-serif"; c.fillText(SITE_URL.replace(/^https?:\/\//, "").replace(/\/$/, ""), W / 2, 1130);
+  const a = document.createElement("a"); a.download = "동네배달_QR.png"; a.href = card.toDataURL("image/png"); a.click();
 };
 
 // ── 광고 슬라이드 ──
@@ -317,7 +375,7 @@ document.getElementById("tab-admin").addEventListener("click", async e => {
 });
 
 // ── 수정·승인 창 (지도에서 위치 누르기) ──
-let editCtx = null, pickMap = null, pickMarker = null, pickPos = null;
+let editCtx = null, pickMap = null, pickMarker = null, pickPos = null, noPosWarned = false;
 function setPick(lat, lng) {
   pickPos = (typeof lat === "number" && typeof lng === "number") ? { lat, lng } : null;
   if (pickMarker) { pickMarker.remove(); pickMarker = null; }
@@ -332,7 +390,7 @@ function openEdit(s, mode) {
   ["name","menu","link","phone","addr","intro"].forEach(k => $("e_" + k).value = s[k] || "");
   $("e_cat").value = CATS.includes(s.cat) ? s.cat : "기타";
   $("e_ad").checked = !!s.ad; $("e_example").checked = !!s.example; $("editMsg").textContent = "";
-  $("editModal").classList.remove("hidden");
+  noPosWarned = false; $("editModal").classList.remove("hidden");
   setTimeout(() => {
     if (!pickMap) {
       pickMap = L.map("pickMap").setView(CENTER, 15);
@@ -342,11 +400,32 @@ function openEdit(s, mode) {
     pickMap.invalidateSize();
     pickMap.setView(typeof s.lat === "number" ? [s.lat, s.lng] : CENTER, 16);
     setPick(s.lat, s.lng);
+    $("e_geoMsg").textContent = pickPos ? "핀이 틀렸으면 맞는 자리를 다시 눌러 주세요." : "";
+    if (!pickPos && (s.addr || "").trim()) findByAddr();
   }, 60);
 }
+async function findByAddr() {
+  const addr = $("e_addr").value.trim();
+  if (!addr) { $("e_geoMsg").textContent = "주소 칸을 먼저 채워 주세요."; return; }
+  $("e_geoMsg").textContent = "주소로 위치 찾는 중…";
+  try {
+    const g = await api("admin/geocode", { addr }, true);
+    if (g.exact) {
+      pickMap.setView([g.lat, g.lng], 17); setPick(g.lat, g.lng);
+      $("e_geoMsg").textContent = "✅ 주소로 핀을 찍었어요. 가게 자리가 맞는지 보고, 틀리면 맞는 곳을 눌러 주세요.";
+    } else {
+      pickMap.setView([g.lat, g.lng], 16);
+      $("e_geoMsg").textContent = "⚠️ 정확한 번지는 못 찾아서 근처로 옮겼어요. 가게 자리를 직접 눌러 주세요.";
+    }
+  } catch (err) { $("e_geoMsg").textContent = "⚠️ " + err.message; }
+}
+$("e_find").onclick = findByAddr;
 $("e_clearPos").onclick = () => setPick(null, null);
 $("editClose").onclick = () => $("editModal").classList.add("hidden");
+
 $("editSave").onclick = async () => {
+  if (!pickPos && !noPosWarned) { noPosWarned = true; $("editMsg").textContent = "위치가 아직 없어요! 지도에 핀이 안 나와요. 그래도 저장하려면 한 번 더 누르세요."; return; }
+  noPosWarned = false;
   const body = { id: editCtx.id, name: $("e_name").value, cat: $("e_cat").value, menu: $("e_menu").value, link: $("e_link").value.trim(), phone: $("e_phone").value, addr: $("e_addr").value, intro: $("e_intro").value, ad: $("e_ad").checked, example: $("e_example").checked, lat: pickPos ? pickPos.lat : null, lng: pickPos ? pickPos.lng : null };
   try {
     await api(editCtx.mode === "approve" ? "admin/approve" : "admin/update", body, true);
@@ -354,6 +433,12 @@ $("editSave").onclick = async () => {
     await loadAdmin(); loadHome();
   } catch (err) { $("editMsg").textContent = err.message; }
 };
+
+// 쿠팡 바로가기 → 제휴 안내 → 이동
+$("cpBtn").onclick = () => $("cpModal").classList.remove("hidden");
+$("cpClose").onclick = () => $("cpModal").classList.add("hidden");
+$("cpGo").addEventListener("click", () => { track("coupang"); setTimeout(() => $("cpModal").classList.add("hidden"), 300); });
+$("cpModal").addEventListener("click", (e) => { if (e.target.id === "cpModal") $("cpModal").classList.add("hidden"); });
 
 loadHome();
 </script>
