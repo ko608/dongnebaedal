@@ -23,7 +23,7 @@ const EXAMPLES = [
   example: true, ad: false, createdAt: 0,
 }));
 
-const CATS = ["치킨", "한식", "분식", "카페", "중식", "일식", "피자", "야식", "디저트", "기타"];
+const CATS = ["치킨", "한식", "분식", "카페", "중식", "일식", "피자", "야식", "디저트", "반찬", "편의점", "약국", "꽃집", "미용실", "세탁소", "생활", "기타"];
 
 const json = (data, status = 200) =>
   new Response(JSON.stringify(data), { status, headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" } });
@@ -46,7 +46,8 @@ function cleanStore(b, base = {}) {
   if (b.cat !== undefined) s.cat = CATS.includes(b.cat) ? b.cat : "기타";
   if (b.menu !== undefined) s.menu = clip(b.menu, 80);
   if (b.link !== undefined) s.link = clip(b.link, 400);
-  if (b.phone !== undefined) s.phone = clip(b.phone, 20);
+  if (b.phone !== undefined) s.phone = clip(b.phone, 20).replace(/[^0-9+\-\s]/g, "");
+  if (b.showTel !== undefined) s.showTel = !!b.showTel;
   if (b.addr !== undefined) s.addr = clip(b.addr, 80);
   if (b.intro !== undefined) s.intro = clip(b.intro, 120);
   if (b.lat !== undefined) s.lat = num(b.lat);
@@ -56,7 +57,10 @@ function cleanStore(b, base = {}) {
   return s;
 }
 // 손님에게 보여 줄 때는 전화번호·소개 외 필요한 것만
-const publicStore = (s) => ({ id: s.id, name: s.name, cat: s.cat, menu: s.menu, link: s.link, addr: s.addr, intro: s.intro, lat: s.lat, lng: s.lng, ad: !!s.ad, example: !!s.example });
+const telOf = (s) => (s.showTel && s.phone ? s.phone.replace(/[^0-9+]/g, "") : "");
+// 주문 링크나 손님 공개 전화 중 하나는 있어야 해요
+const hasAction = (s) => okLink(s.link || "") || !!telOf(s);
+const publicStore = (s) => ({ id: s.id, name: s.name, cat: s.cat, menu: s.menu, link: okLink(s.link || "") ? s.link : "", tel: telOf(s), addr: s.addr, intro: s.intro, lat: s.lat, lng: s.lng, ad: !!s.ad, example: !!s.example });
 
 // 관리 비밀번호는 원문 대신 암호화된 값만 저장해요 (PBKDF2)
 const PW_SALT = "8f9bd4dae2fe70f40bc50854186f3255";
@@ -112,11 +116,121 @@ async function isAdmin(request, env) {
   return await pwMatches(pw);
 }
 
+// ════════ 🛵 퀵 연결 (충전금 차감 방식) ════════
+// KV: quick:cfg {on,name,fee,key} · quick:bal 잔액 · quick:reqs 요청 목록 · quick:ledger 입출금 내역
+const QDEF = { on: false, name: "제휴 퀵", fee: 500, key: "" };
+const qCfg = async (env) => ({ ...QDEF, ...((await env.DB.get("quick:cfg", "json")) || {}) });
+const qBal = async (env) => parseInt((await env.DB.get("quick:bal")) || "0", 10) || 0;
+const qList = async (env, k) => (await env.DB.get(k, "json")) || [];
+const newKey = () => Array.from(crypto.getRandomValues(new Uint8Array(6)), (b) => "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"[b % 32]).join("");
+async function qLedger(env, entry) {
+  const bal = (await qBal(env)) + entry.amount;
+  await env.DB.put("quick:bal", String(bal));
+  const led = await qList(env, "quick:ledger");
+  led.unshift({ ...entry, balance: bal, t: Date.now() });
+  await env.DB.put("quick:ledger", JSON.stringify(led.slice(0, 1000)));
+  return bal;
+}
+// 업체 화면에는 접수 전까지 손님 전화번호를 가려요 (접수=수수료 차감 후 공개)
+const partnerView = (r) => (r.status === "new" ? { ...r, phone: r.phone.replace(/\d(?=\d{4})/g, "*").replace(/\d{4}$/, "****") } : r);
+
+async function handleQuick(request, env, path, body, method) {
+  // 손님: 퀵 사용 여부
+  if (path === "quick/info") { const c = await qCfg(env); return json({ on: !!c.on, name: c.name }); }
+
+  // 손님: 퀵 요청 보내기
+  if (path === "quick/request" && method === "POST") {
+    const c = await qCfg(env);
+    if (!c.on) return json({ error: "지금은 퀵 연결을 쉬고 있어요." }, 400);
+    if (!body.agree) return json({ error: "연락처 제공에 동의해 주세요." }, 400);
+    const r = { id: "q" + Date.now().toString(36) + Math.random().toString(36).slice(2, 5), createdAt: Date.now(), status: "new",
+      from: clip(body.from, 80), to: clip(body.to, 80), phone: clip(body.phone, 20).replace(/[^0-9\-]/g, ""), item: clip(body.item, 60), memo: clip(body.memo, 120),
+      storeId: clip(body.storeId, 40), storeName: clip(body.storeName, 40) };
+    if (!r.from || !r.to || r.phone.replace(/\D/g, "").length < 9) return json({ error: "출발지, 도착지, 연락처를 확인해 주세요." }, 400);
+    const reqs = await qList(env, "quick:reqs");
+    if (reqs.filter((x) => x.status === "new").length >= 50) return json({ error: "요청이 밀려 있어요. 잠시 후 다시 시도해 주세요." }, 429);
+    reqs.unshift(r);
+    await env.DB.put("quick:reqs", JSON.stringify(reqs.slice(0, 500)));
+    return json({ ok: true });
+  }
+
+  // 퀵 업체 화면
+  if (path.startsWith("partner/")) {
+    const c = await qCfg(env);
+    const key = (request.headers.get("x-partner-key") || "").trim().toUpperCase();
+    if (!c.key || key !== c.key) return json({ error: "접속 코드가 맞지 않아요." }, 401);
+    const act = path.slice(8);
+    if (act === "list") {
+      const reqs = await qList(env, "quick:reqs");
+      return json({ name: c.name, fee: c.fee, balance: await qBal(env), reqs: reqs.filter((r) => Date.now() - r.createdAt < 3 * 864e5).slice(0, 80).map(partnerView) });
+    }
+    if (method !== "POST") return json({ error: "잘못된 요청이에요." }, 405);
+    const reqs = await qList(env, "quick:reqs");
+    const r = reqs.find((x) => x.id === clip(body.id, 40));
+    if (!r) return json({ error: "요청을 찾지 못했어요." }, 404);
+    if (act === "accept") {
+      if (r.status !== "new") return json({ error: "이미 처리된 요청이에요." }, 400);
+      const bal = await qBal(env);
+      if (bal < c.fee) return json({ error: `충전금이 부족해요. (잔액 ${bal.toLocaleString()}원 · 건당 ${c.fee.toLocaleString()}원)` }, 402);
+      r.status = "accepted"; r.acceptedAt = Date.now(); r.fee = c.fee;
+      await env.DB.put("quick:reqs", JSON.stringify(reqs));
+      await qLedger(env, { type: "fee", amount: -c.fee, reqId: r.id, memo: `접수 수수료 (${r.from} → ${r.to})` });
+      return json({ ok: true, req: r });
+    }
+    if (act === "done") { if (r.status !== "accepted") return json({ error: "접수한 요청만 완료할 수 있어요." }, 400); r.status = "done"; r.doneAt = Date.now(); }
+    else if (act === "skip") { if (r.status !== "new") return json({ error: "접수 전 요청만 넘길 수 있어요." }, 400); r.status = "skipped"; }
+    else return json({ error: "없는 기능이에요." }, 404);
+    await env.DB.put("quick:reqs", JSON.stringify(reqs));
+    return json({ ok: true });
+  }
+
+  // 관리자
+  if (path.startsWith("admin/quick")) {
+    if (!(await isAdmin(request, env))) return json({ error: "비밀번호가 맞지 않아요." }, 401);
+    const act = path.slice(12);
+    if (act === "") {
+      const [cfg, balance, reqs, ledger] = await Promise.all([qCfg(env), qBal(env), qList(env, "quick:reqs"), qList(env, "quick:ledger")]);
+      return json({ cfg, balance, reqs: reqs.slice(0, 100), ledger: ledger.slice(0, 100) });
+    }
+    if (method !== "POST") return json({ error: "잘못된 요청이에요." }, 405);
+    if (act === "config") {
+      const c = await qCfg(env);
+      if (body.on !== undefined) c.on = !!body.on;
+      if (body.name !== undefined) c.name = clip(body.name, 30) || "제휴 퀵";
+      if (body.fee !== undefined) { const f = parseInt(body.fee, 10); if (!(f >= 0 && f <= 100000)) return json({ error: "수수료 금액을 확인해 주세요." }, 400); c.fee = f; }
+      if (body.newKey || !c.key) c.key = newKey();
+      await env.DB.put("quick:cfg", JSON.stringify(c));
+      return json({ ok: true, cfg: c });
+    }
+    if (act === "charge") {
+      const amt = parseInt(body.amount, 10);
+      if (!amt || Math.abs(amt) > 10000000) return json({ error: "금액을 확인해 주세요." }, 400);
+      const bal = await qLedger(env, { type: amt > 0 ? "charge" : "adjust", amount: amt, memo: clip(body.memo, 60) || (amt > 0 ? "충전" : "차감 조정") });
+      return json({ ok: true, balance: bal });
+    }
+    if (act === "refund") {
+      const reqs = await qList(env, "quick:reqs");
+      const r = reqs.find((x) => x.id === clip(body.id, 40));
+      if (!r || !r.fee || r.refunded) return json({ error: "환불할 수 있는 요청이 아니에요." }, 400);
+      r.refunded = true; r.status = "refunded";
+      await env.DB.put("quick:reqs", JSON.stringify(reqs));
+      const bal = await qLedger(env, { type: "refund", amount: r.fee, reqId: r.id, memo: "수수료 환불" });
+      return json({ ok: true, balance: bal });
+    }
+    return json({ error: "없는 기능이에요." }, 404);
+  }
+  return null;
+}
+
 async function handleApi(request, env, path) {
   if (!env.DB) return json({ error: "서버 설정이 아직 안 됐어요. (KV 바인딩 DB 필요)" }, 500);
   const method = request.method;
   let body = {};
   if (method === "POST") { try { body = await request.json(); } catch { return json({ error: "잘못된 요청이에요." }, 400); } }
+  if (path.startsWith("quick/") || path.startsWith("partner/") || path.startsWith("admin/quick")) {
+    const q = await handleQuick(request, env, path, body, method);
+    if (q) return q;
+  }
 
   // ── 손님용 ──
   if (path === "stores" && method === "GET") {
@@ -128,7 +242,8 @@ async function handleApi(request, env, path) {
     if (!body.agree) return json({ error: "개인정보 수집·이용에 동의해 주세요." }, 400);
     const s = cleanStore(body);
     if (!s.name || !s.menu || !s.phone || !s.addr) return json({ error: "필수 항목을 모두 입력해 주세요." }, 400);
-    if (!okLink(s.link)) return json({ error: "주문 링크는 https:// 로 시작하는 주소를 넣어 주세요." }, 400);
+    if (s.link && !okLink(s.link)) return json({ error: "주문 링크는 https:// 로 시작하는 주소를 넣어 주세요." }, 400);
+    if (!hasAction(s)) return json({ error: "주문 링크가 없으면 '손님 전화 받기'를 체크해 주세요." }, 400);
     const pending = await getList(env, "pending");
     if (pending.length >= 200) return json({ error: "신청이 많이 밀려 있어요. 잠시 후 다시 시도해 주세요." }, 429);
     pending.unshift({ ...s, id: "p" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), createdAt: Date.now(), ad: false, example: false });
@@ -170,7 +285,9 @@ async function handleApi(request, env, path) {
       const p = pending.find((x) => x.id === id);
       if (!p) return json({ error: "신청을 찾지 못했어요." }, 404);
       const s = cleanStore(body, { ...p, id: "s" + Date.now().toString(36) });
-      if (!s.name || !okLink(s.link)) return json({ error: "가게 이름과 https:// 주문 링크를 확인해 주세요." }, 400);
+      if (!s.name) return json({ error: "가게 이름을 넣어 주세요." }, 400);
+      if (s.link && !okLink(s.link)) return json({ error: "주문 링크는 https:// 로 시작해야 해요." }, 400);
+      if (!hasAction(s)) return json({ error: "주문 링크를 넣거나 '손님 전화 공개'를 체크해 주세요." }, 400);
       stores.unshift(s);
       pending = pending.filter((x) => x.id !== id);
       await Promise.all([putList(env, "stores", stores), putList(env, "pending", pending)]);
@@ -185,6 +302,7 @@ async function handleApi(request, env, path) {
       if (i < 0) return json({ error: "가게를 찾지 못했어요." }, 404);
       const s = cleanStore(body, stores[i]);
       if (s.link && !okLink(s.link)) return json({ error: "주문 링크는 https:// 로 시작해야 해요." }, 400);
+      if (!s.example && !hasAction(s)) return json({ error: "주문 링크를 넣거나 '손님 전화 공개'를 체크해 주세요." }, 400);
       stores[i] = s;
       await putList(env, "stores", stores);
       return json({ ok: true });
