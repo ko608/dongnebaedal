@@ -342,6 +342,7 @@ function popupHtml(s) {
   return `<div style="min-width:180px">
     <div style="font-weight:800;font-size:13px">${esc(s.name)}${s.example ? ' <span style="font-size:10px;background:#9E9E9E;color:#fff;padding:1px 5px;border-radius:9px">예시</span>' : ""}</div>
     <div style="font-size:11px;color:#777;margin-top:2px">${esc(s.cat)} · ${esc(s.addr)}</div>
+    ${ME && typeof s.lat === "number" ? `<div style="margin-top:4px;font-size:12px;font-weight:800;color:#1E88E5">📍 내 위치에서 ${distText(distM(ME, s))}</div>` : `<div style="margin-top:4px;font-size:10px;color:#999">📍 내 위치 버튼을 누르면 거리가 보여요</div>`}
     <div style="margin-top:6px;font-size:11px;color:#444;background:#F9FAFB;padding:6px 8px;border-radius:8px">🍽️ ${esc(s.menu)}</div>
     ${s.yt ? `<button type="button" data-yt="${esc(s.id)}" style="display:block;width:100%;margin-top:6px;background:#FF0000;color:#fff;text-align:center;padding:8px;border-radius:999px;font-size:12px;font-weight:700;border:0">▶ 가게 영상 보기</button>` : ""}
     ${actions(s).map(b => b.quick ? `<button type="button" data-quick="${esc(s.id)}" style="display:block;width:100%;margin-top:6px;background:#FFB300;color:#111;text-align:center;padding:8px;border-radius:999px;font-size:12px;font-weight:700;border:0">🛵 퀵으로 받기</button>` : `<a href="${esc(b.href)}" ${b.ext ? 'target="_blank" rel="noopener"' : ""} data-click="${esc(s.id)}" style="display:block;margin-top:6px;background:${b.call ? "#00C73C" : "black"};color:white;text-align:center;padding:8px;border-radius:999px;font-size:12px;font-weight:700;text-decoration:none">${b.label}</a>`).join("")}</div>`;
@@ -383,7 +384,7 @@ function renderMap() {
   }
   markers.clearLayers();
   visible().filter(s => typeof s.lat === "number" && typeof s.lng === "number")
-    .forEach(s => L.marker([s.lat, s.lng], { icon: pinIcon(s.ad && !s.example, s.cat), zIndexOffset: s.ad && !s.example ? 1000 : 0 }).bindPopup(popupHtml(s), { maxWidth: 240 }).addTo(markers));
+    .forEach(s => L.marker([s.lat, s.lng], { icon: pinIcon(s.ad && !s.example, s.cat), zIndexOffset: s.ad && !s.example ? 1000 : 0 }).bindPopup(() => popupHtml(s), { maxWidth: 240 }).addTo(markers));
   setTimeout(() => map.invalidateSize(), 50);
 }
 // ── 📍 내 위치 (화면에서만 쓰고 어디에도 저장하지 않아요) ──
