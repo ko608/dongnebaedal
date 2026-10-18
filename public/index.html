@@ -162,6 +162,7 @@
   <div id="admin-lock" class="mt-4"><input id="pw" type="password" autocomplete="current-password" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="비밀번호" class="w-full h-[48px] px-4 rounded-[12px] border"><button id="unlockBtn" class="mt-2 w-full h-[48px] bg-black text-white rounded-[12px] font-bold">입장</button><div id="lockMsg" class="text-[12px] text-red-600 mt-2 min-h-[1em]"></div></div>
   <div id="admin-content" class="hidden">
     <div class="mt-4 flex gap-3 text-[12px] bg-[#F5F5F5] rounded-full px-4 py-2 w-fit"><span>대기 <b id="cnt-pending">0</b></span><span>·</span><span>노출 <b id="cnt-approved">0</b></span><span>·</span><span>광고 <b id="cnt-ad">0</b></span></div>
+    <div id="visitBox" class="mt-2 text-[12px] bg-[#E8F5E9] rounded-[14px] px-4 py-2 w-fit"></div>
     <h3 class="mt-6 font-bold text-[14px]">⏳ 승인 대기</h3>
     <div id="pending-list" class="mt-3 grid gap-3"></div>
     <h3 class="mt-8 font-bold text-[14px]">✅ 노출 중인 가게</h3>
@@ -477,6 +478,8 @@ async function loadAdmin() {
   catch (e) { if (e.status === 401) sessionStorage.removeItem("dn_pw"); $("lockMsg").textContent = e.message; $("admin-content").classList.add("hidden"); $("admin-lock").classList.remove("hidden"); return; }
   $("admin-lock").classList.add("hidden"); $("admin-content").classList.remove("hidden"); loadQuickAdmin();
   const { stores, pending, clicks } = ADMIN;
+  const vs = ADMIN.visits || [];
+  $("visitBox").innerHTML = vs.length ? `👀 방문자 오늘 <b>${vs[0].n}</b>명 · 어제 <b>${vs[1].n}</b>명 · 7일 합계 <b>${vs.reduce((a, v) => a + v.n, 0)}</b>명` : "";
   $("cnt-pending").textContent = pending.length; $("cnt-approved").textContent = stores.length; $("cnt-ad").textContent = stores.filter(s => s.ad && !s.example).length;
   $("pending-list").innerHTML = pending.length ? pending.map(s => `
     <div class="rounded-[14px] border p-4 bg-white"><div class="flex justify-between"><div class="font-bold text-[14px]">${esc(s.name)} <span class="text-[11px] px-2 py-0.5 bg-[#FFF3E0] text-[#FF6A00] rounded-full">${esc(s.cat)}</span></div><span class="text-[10px] text-[#999]">${new Date(s.createdAt).toLocaleDateString("ko-KR")}</span></div>
@@ -653,6 +656,7 @@ $("quick-admin").addEventListener("click", async e => {
 });
 
 loadHome();
+(function(){ try{ const d=new Date(Date.now()+9*3600e3).toISOString().slice(0,10); if(localStorage.getItem("dn_v")!==d){ localStorage.setItem("dn_v",d); navigator.sendBeacon("/api/visit", new Blob(["{}"],{type:"application/json"})); } }catch(e){} })();
 </script>
 </body>
 </html>

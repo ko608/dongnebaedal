@@ -264,6 +264,13 @@ async function handleApi(request, env, path) {
     return json({ ok: true });
   }
 
+  if (path === "visit" && method === "POST") {
+    const k = "visit:" + kstDay(0);
+    const n = parseInt((await env.DB.get(k)) || "0", 10) + 1;
+    await env.DB.put(k, String(n), { expirationTtl: 400 * 864e2 });
+    return json({ ok: true });
+  }
+
   // ── 관리자용 ──
   if (path.startsWith("admin/")) {
     if (!(await isAdmin(request, env))) return json({ error: "비밀번호가 맞지 않아요." }, 401);
@@ -273,7 +280,8 @@ async function handleApi(request, env, path) {
       const [stores, pending] = await Promise.all([getList(env, "stores"), getList(env, "pending")]);
       const clicks = {};
       await Promise.all(stores.map(async (s) => { clicks[s.id] = parseInt((await env.DB.get("click:" + s.id)) || "0", 10); }));
-      return json({ stores, pending, clicks });
+      const visits = await Promise.all([0, 1, 2, 3, 4, 5, 6].map(async (d) => ({ day: kstDay(d), n: parseInt((await env.DB.get("visit:" + kstDay(d))) || "0", 10) })));
+      return json({ stores, pending, clicks, visits });
     }
     if (method !== "POST") return json({ error: "잘못된 요청이에요." }, 405);
     if (act === "geocode") {
@@ -333,3 +341,7 @@ export default {
     return env.ASSETS.fetch(request);
   },
 };
+
+function kstDay(back) {
+  return new Date(Date.now() + 9 * 3600e3 - back * 864e5).toISOString().slice(0, 10);
+}
