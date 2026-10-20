@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>동네배달 · 가게 메뉴</title>
+<meta name="description" content="동네배달에서 우리 동네 가게의 메뉴와 주문·전화 버튼을 바로 보세요.">
+<meta name="theme-color" content="#2EAF6A">
+<link rel="icon" type="image/png" href="/favicon.png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<style>
+:root{--green:#2EAF6A;--green-d:#1E8C52;--ink:#1A1A1A;--sub:#5B5B5B;--line:#E6E9E7;--bg:#F6FAF7;--star:#FFC107}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Apple SD Gothic Neo","Noto Sans KR","Malgun Gothic",sans-serif;-webkit-text-size-adjust:100%}
+a{color:inherit}
+.wrap{max-width:560px;margin:0 auto;min-height:100vh;background:#fff}
+header{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 16px;background:var(--green);color:#fff;position:sticky;top:0;z-index:5}
+header a.brand{display:flex;align-items:center;gap:8px;text-decoration:none;color:#fff}
+header img{width:32px;height:32px;border-radius:50%;background:#fff}
+header b{font-size:17px;font-weight:900;display:block;line-height:1.1}
+header small{font-size:11px;opacity:.9}
+header .home{font-size:12px;font-weight:700;color:#fff;text-decoration:none;border:1.5px solid rgba(255,255,255,.7);border-radius:999px;padding:7px 12px;white-space:nowrap}
+.photos{display:flex;gap:8px;overflow-x:auto;scroll-snap-type:x mandatory;padding:12px 16px 0}
+.photos img{flex:0 0 82%;max-width:420px;aspect-ratio:4/3;object-fit:cover;border-radius:14px;scroll-snap-align:start;background:#eee}
+.photos.one img{flex-basis:100%}
+.head{padding:16px 16px 4px}
+.cat{display:inline-block;font-size:12px;font-weight:700;color:var(--green-d);background:#E8F6EE;border-radius:999px;padding:3px 10px}
+h1{font-size:24px;margin:8px 0 4px;letter-spacing:-.5px}
+.intro{font-size:14px;color:var(--sub);margin:4px 0 0;line-height:1.5}
+.addr{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:12px 16px 0;padding:10px 12px;border:1px solid var(--line);border-radius:12px;font-size:13px;color:var(--sub)}
+.addr a{flex-shrink:0;font-weight:700;color:var(--green-d);text-decoration:none;font-size:12px}
+.acts{display:grid;gap:8px;padding:14px 16px 4px}
+.btn{display:flex;align-items:center;justify-content:center;gap:6px;min-height:52px;border-radius:14px;font-size:16px;font-weight:800;text-decoration:none;border:0;cursor:pointer}
+.btn.order{background:#111;color:#fff}
+.btn.call{background:var(--green);color:#fff}
+.btn.share{background:#fff;color:var(--ink);border:1.5px solid var(--line);font-size:14px;min-height:46px}
+h2{font-size:17px;margin:22px 16px 8px}
+.menu{list-style:none;margin:0;padding:0 16px}
+.menu li{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:12px 2px;border-bottom:1px solid var(--line);font-size:15px}
+.menu li .n{min-width:0}
+.menu li .best{display:inline-block;font-size:11px;font-weight:800;color:#7A5A00;background:#FFF3C4;border-radius:6px;padding:1px 6px;margin-right:6px;vertical-align:2px}
+.menu li .p{font-weight:800;white-space:nowrap}
+.foot{margin:26px 16px 0;padding:16px;border-radius:14px;background:#F1F8F2;font-size:13px;color:var(--sub);line-height:1.6;text-align:center}
+.foot a{display:inline-block;margin-top:8px;font-weight:800;color:var(--green-d);text-decoration:none}
+.note{font-size:11px;color:#999;text-align:center;padding:18px 16px 28px}
+.msg{padding:60px 20px;text-align:center;color:var(--sub);font-size:14px;line-height:1.6}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <a class="brand" href="/"><img src="/logo.png" alt=""><span><b>동네배달</b><small>우리 동네 생활지도</small></span></a>
+    <a class="home" href="/">🗺️ 다른 가게 보기</a>
+  </header>
+  <main id="app"><div class="msg">가게 정보를 불러오는 중…</div></main>
+  <div class="note">동네배달은 가게를 소개하고 연결만 해 드려요. 주문·결제는 각 가게와 배달앱에서 이뤄집니다.</div>
+</div>
+<script>
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const priceText = (p) => { const d = String(p || "").replace(/[^0-9]/g, ""); return d && /^[0-9,\s원]+$/.test(String(p).trim()) ? Number(d).toLocaleString("ko-KR") + "원" : String(p || ""); };
+const EMOJI = {치킨:"🍗",한식:"🍚",분식:"🍢",카페:"☕",중식:"🥟",일식:"🍣",피자:"🍕",야식:"🌶️",디저트:"🍰",반찬:"🥢",편의점:"🏪",약국:"💊",꽃집:"💐",미용실:"💇",세탁소:"👕",생활:"🛠️",기타:"📍"};
+const track = (id) => { try { navigator.sendBeacon("/api/click", new Blob([JSON.stringify({ id })], { type: "application/json" })); } catch (e) {} };
+const id = decodeURIComponent((location.pathname.match(/^\/s\/([^/]+)/) || [])[1] || "");
+const fromQR = new URLSearchParams(location.search).get("qr") === "1";
+
+(async () => {
+  try {
+    const r = await fetch("/api/store?id=" + encodeURIComponent(id) + (fromQR ? "&qr=1" : ""));
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error || "가게를 찾지 못했어요.");
+    render(d.store);
+    // QR로 들어온 기록은 한 번만 세고 주소창에서는 지워요 (새로고침해도 중복 안 됨)
+    if (fromQR) history.replaceState(null, "", location.pathname);
+  } catch (e) {
+    $("app").innerHTML = `<div class="msg">${esc(e.message)}<br><a href="/" style="color:#1E8C52;font-weight:800">동네배달 지도에서 다른 가게 찾기 ›</a></div>`;
+  }
+})();
+
+function render(s) {
+  document.title = s.name + " · 동네배달";
+  const items = (s.items || []).length ? s.items : (s.menu ? [{ n: s.menu, p: "", b: false }] : []);
+  const ordered = items.filter(x => x.b).concat(items.filter(x => !x.b));
+  const photos = s.photos || [];
+  const mapUrl = "https://map.naver.com/p/search/" + encodeURIComponent(s.name + " " + (s.addr || ""));
+  $("app").innerHTML = `
+    ${photos.length ? `<div class="photos ${photos.length === 1 ? "one" : ""}">${photos.map((k, i) => `<img src="/img/${esc(k)}" alt="${esc(s.name)} 사진 ${i + 1}" loading="${i ? "lazy" : "eager"}">`).join("")}</div>` : ""}
+    <div class="head">
+      <span class="cat">${EMOJI[s.cat] || "📍"} ${esc(s.cat)}</span>
+      <h1>${esc(s.name)}</h1>
+      ${s.intro ? `<p class="intro">${esc(s.intro)}</p>` : ""}
+    </div>
+    ${s.addr ? `<div class="addr"><span>📍 ${esc(s.addr)}</span><a href="${mapUrl}" target="_blank" rel="noopener">지도 보기 ›</a></div>` : ""}
+    <div class="acts">
+      ${s.link ? `<a class="btn order" href="${esc(s.link)}" target="_blank" rel="noopener" data-track>🛵 배달 주문하기</a>` : ""}
+      ${s.tel ? `<a class="btn call" href="tel:${esc(s.tel)}" data-track>📞 전화하기</a>` : ""}
+      <button class="btn share" type="button" id="shareBtn">🔗 이 가게 공유하기</button>
+    </div>
+    ${ordered.length ? `<h2>🍽️ 메뉴</h2><ul class="menu">${ordered.map(x => `<li><span class="n">${x.b ? '<span class="best">대표</span>' : ""}${esc(x.n)}</span><span class="p">${esc(priceText(x.p))}</span></li>`).join("")}</ul>` : ""}
+    <div class="foot">우리 동네 맛집·생활가게를 지도로 한눈에!<br><a href="/">🗺️ 동네배달에서 다른 가게 보기 ›</a></div>`;
+  document.querySelectorAll("[data-track]").forEach(a => a.addEventListener("click", () => track(s.id), { once: true }));
+  $("shareBtn").onclick = async () => {
+    const url = location.origin + "/s/" + encodeURIComponent(s.id);
+    try { if (navigator.share) { await navigator.share({ title: s.name + " · 동네배달", url }); return; } } catch (e) { return; }
+    try { await navigator.clipboard.writeText(url); $("shareBtn").textContent = "✅ 주소가 복사됐어요"; } catch (e) {}
+  };
+}
+</script>
+</body>
+</html>

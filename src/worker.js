@@ -57,13 +57,28 @@ function cleanStore(b, base = {}) {
   if (b.lng !== undefined) s.lng = num(b.lng);
   if (b.ad !== undefined) s.ad = !!b.ad;
   if (b.example !== undefined) s.example = !!b.example;
+  if (b.items !== undefined) s.items = cleanItems(b.items);
+  if (b.photos !== undefined) s.photos = (Array.isArray(b.photos) ? b.photos : []).filter((k) => /^[a-z0-9]{8,40}$/.test(String(k))).slice(0, MAX_PHOTOS);
+  if (b.plan !== undefined) s.plan = b.plan === "qr" ? "qr" : "free";
+  // 메뉴 항목이 있으면 한 줄 대표 메뉴는 자동으로 만들어요 (대표 ⭐ 먼저)
+  if (s.items && s.items.length && (b.items !== undefined || !s.menu)) s.menu = menuLine(s.items);
   return s;
+}
+// ── 메뉴 항목 {n: 이름, p: 가격, b: 대표} ──
+const MAX_ITEMS = 30, MAX_PHOTOS = 4;
+function cleanItems(v) {
+  return (Array.isArray(v) ? v : []).map((x) => ({ n: clip(x && x.n, 30), p: clip(x && x.p, 20), b: !!(x && x.b) })).filter((x) => x.n).slice(0, MAX_ITEMS);
+}
+const priceText = (p) => { const d = String(p || "").replace(/[^0-9]/g, ""); return d && /^[0-9,\s원]+$/.test(String(p).trim()) ? Number(d).toLocaleString("ko-KR") + "원" : String(p || ""); };
+function menuLine(items) {
+  const top = items.filter((x) => x.b).concat(items.filter((x) => !x.b)).slice(0, 2);
+  return clip(top.map((x) => x.n + (x.p ? " " + priceText(x.p) : "")).join(" / "), 80);
 }
 // 손님에게 보여 줄 때는 전화번호·소개 외 필요한 것만
 const telOf = (s) => (s.showTel && s.phone ? s.phone.replace(/[^0-9+]/g, "") : "");
 // 주문 링크나 손님 공개 전화 중 하나는 있어야 해요
 const hasAction = (s) => okLink(s.link || "") || !!telOf(s);
-const publicStore = (s) => ({ id: s.id, name: s.name, cat: s.cat, menu: s.menu, link: okLink(s.link || "") ? s.link : "", tel: telOf(s), yt: s.yt || "", ytShort: !!s.ytShort, addr: s.addr, intro: s.intro, lat: s.lat, lng: s.lng, ad: !!s.ad, example: !!s.example });
+const publicStore = (s) => ({ id: s.id, name: s.name, cat: s.cat, menu: s.menu, items: s.items || [], photos: s.plan === "qr" ? (s.photos || []) : [], plan: s.plan === "qr" ? "qr" : "free", link: okLink(s.link || "") ? s.link : "", tel: telOf(s), yt: s.yt || "", ytShort: !!s.ytShort, addr: s.addr, intro: s.intro, lat: s.lat, lng: s.lng, ad: !!s.ad, example: !!s.example });
 
 // 관리 비밀번호는 원문 대신 암호화된 값만 저장해요 (PBKDF2)
 const PW_SALT = "8f9bd4dae2fe70f40bc50854186f3255";
@@ -241,9 +256,21 @@ async function handleApi(request, env, path) {
     return json({ stores: stores.map(publicStore) });
   }
 
+  // 가게 전용 페이지(/s/가게번호)용 · QR로 들어오면 qr=1 → QR 방문 수 세기
+  if (path === "store" && method === "GET") {
+    const u = new URL(request.url), id = clip(u.searchParams.get("id"), 40);
+    const s = (await getList(env, "stores")).find((x) => x.id === id);
+    if (!s) return json({ error: "가게를 찾지 못했어요. 지도에서 내려갔을 수 있어요." }, 404);
+    if (u.searchParams.get("qr") === "1") {
+      const k = "qr:" + id, n = parseInt((await env.DB.get(k)) || "0", 10) + 1;
+      await env.DB.put(k, String(n));
+    }
+    return json({ store: publicStore(s) });
+  }
+
   if (path === "apply" && method === "POST") {
     if (!body.agree) return json({ error: "개인정보 수집·이용에 동의해 주세요." }, 400);
-    const s = cleanStore(body);
+    const s = cleanStore({ ...body, plan: undefined, photos: undefined });
     if (!s.name || !s.menu || !s.phone || !s.addr) return json({ error: "필수 항목을 모두 입력해 주세요." }, 400);
     if (s.link && !okLink(s.link)) return json({ error: "주문 링크는 https:// 로 시작하는 주소를 넣어 주세요." }, 400);
     if (!hasAction(s)) return json({ error: "주문 링크가 없으면 '손님 전화 받기'를 체크해 주세요." }, 400);
@@ -279,11 +306,25 @@ async function handleApi(request, env, path) {
     if (act === "list") {
       const [stores, pending] = await Promise.all([getList(env, "stores"), getList(env, "pending")]);
       const clicks = {};
-      await Promise.all(stores.map(async (s) => { clicks[s.id] = parseInt((await env.DB.get("click:" + s.id)) || "0", 10); }));
+      const qrs = {};
+      await Promise.all(stores.map(async (s) => {
+        clicks[s.id] = parseInt((await env.DB.get("click:" + s.id)) || "0", 10);
+        if (s.plan === "qr") qrs[s.id] = parseInt((await env.DB.get("qr:" + s.id)) || "0", 10);
+      }));
       const visits = await Promise.all([0, 1, 2, 3, 4, 5, 6].map(async (d) => ({ day: kstDay(d), n: parseInt((await env.DB.get("visit:" + kstDay(d))) || "0", 10) })));
-      return json({ stores, pending, clicks, visits });
+      return json({ stores, pending, clicks, qrs, visits });
     }
     if (method !== "POST") return json({ error: "잘못된 요청이에요." }, 405);
+    if (act === "photo") {
+      // 휴대폰에서 줄여 보낸 JPEG(base64)를 KV에 저장하고 번호를 돌려줘요
+      const m = /^data:image\/(jpeg|png|webp);base64,([A-Za-z0-9+/=]+)$/.exec(String(body.data || ""));
+      if (!m) return json({ error: "사진 파일을 확인해 주세요." }, 400);
+      const bin = Uint8Array.from(atob(m[2]), (c) => c.charCodeAt(0));
+      if (bin.length > 600 * 1024) return json({ error: "사진이 너무 커요. (600KB 이하)" }, 400);
+      const key = Date.now().toString(36) + Math.random().toString(36).slice(2, 10);
+      await env.DB.put("img:" + key, bin, { metadata: { type: "image/" + m[1] } });
+      return json({ ok: true, key });
+    }
     if (act === "geocode") {
       const hit = await geocode(body.addr, env);
       return hit ? json({ ok: true, ...hit }) : json({ error: "주소로 위치를 찾지 못했어요. 지도에서 직접 눌러 주세요." }, 404);
@@ -319,8 +360,9 @@ async function handleApi(request, env, path) {
       return json({ ok: true });
     }
     if (act === "delete") {
+      const gone = stores.find((x) => x.id === id);
       await putList(env, "stores", stores.filter((x) => x.id !== id));
-      await env.DB.delete("click:" + id);
+      await Promise.all([env.DB.delete("click:" + id), env.DB.delete("qr:" + id), ...((gone && gone.photos) || []).map((k) => env.DB.delete("img:" + k))]);
       return json({ ok: true });
     }
     return json({ error: "없는 기능이에요." }, 404);
@@ -337,6 +379,20 @@ export default {
     if (url.pathname.startsWith("/api/")) {
       try { return await handleApi(request, env, url.pathname.slice(5)); }
       catch (e) { return json({ error: "서버 오류가 났어요. 잠시 후 다시 시도해 주세요." }, 500); }
+    }
+    // 가게 사진
+    const im = /^\/img\/([a-z0-9]{8,40})$/.exec(url.pathname);
+    if (im && env.DB) {
+      const { value, metadata } = await env.DB.getWithMetadata("img:" + im[1], "arrayBuffer");
+      if (!value) return new Response("not found", { status: 404 });
+      return new Response(value, { headers: { "content-type": (metadata && metadata.type) || "image/jpeg", "cache-control": "public, max-age=31536000, immutable" } });
+    }
+    // 가게 전용 페이지 /s/가게번호 → s.html (가게 정보는 화면에서 /api/store로 불러와요)
+    if (/^\/s\/[A-Za-z0-9_-]{1,40}\/?$/.test(url.pathname)) {
+      for (const p of ["/s.html", "/s"]) {
+        const r = await env.ASSETS.fetch(new Request(new URL(p, url), { headers: request.headers }));
+        if (r.ok) return new Response(r.body, { status: 200, headers: r.headers });
+      }
     }
     return env.ASSETS.fetch(request);
   },
