@@ -43,6 +43,17 @@ h2{font-size:17px;margin:22px 16px 8px}
 .foot{margin:26px 16px 0;padding:16px;border-radius:14px;background:#F1F8F2;font-size:13px;color:var(--sub);line-height:1.6;text-align:center}
 .foot a{display:inline-block;margin-top:8px;font-weight:800;color:var(--green-d);text-decoration:none}
 .note{font-size:11px;color:#999;text-align:center;padding:18px 16px 28px}
+.qrm{position:fixed;inset:0;z-index:20;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;padding:16px}
+.qrm[hidden]{display:none}
+.qrbox{width:100%;max-width:340px;background:#fff;border-radius:20px;padding:20px;text-align:center}
+.qrbox h3{margin:0 0 4px;font-size:18px}
+.qrbox p{margin:0 0 12px;font-size:13px;color:var(--sub)}
+.qrbox canvas{width:220px;height:220px;border-radius:12px;border:1px solid var(--line)}
+.qrbox .url{font-size:11px;color:#999;margin:6px 0 12px;word-break:break-all}
+.qrbox .row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.qrbox button{min-height:46px;border-radius:12px;border:1.5px solid var(--line);background:#fff;font-size:14px;font-weight:800;cursor:pointer}
+.qrbox button.pri{background:var(--green);border-color:var(--green);color:#fff}
+.qrbox .close{margin-top:8px;width:100%;border:0;color:var(--sub);font-weight:600}
 .msg{padding:60px 20px;text-align:center;color:var(--sub);font-size:14px;line-height:1.6}
 </style>
 </head>
@@ -52,15 +63,34 @@ h2{font-size:17px;margin:22px 16px 8px}
     <a class="brand" href="/"><img src="/logo.png" alt=""><span><b>동네배달</b><small>우리 동네 생활지도</small></span></a>
     <a class="home" href="/">🗺️ 다른 가게 보기</a>
   </header>
+  <div class="qrm" id="qrModal" hidden role="dialog" aria-modal="true" aria-labelledby="qrTitle">
+    <div class="qrbox">
+      <h3 id="qrTitle">가게 QR 코드</h3>
+      <p>휴대폰 카메라로 찍으면 이 가게 페이지가 열려요</p>
+      <canvas id="qrCanvas" width="440" height="440" aria-label="가게 QR 코드" role="img"></canvas>
+      <div class="url" id="qrUrl"></div>
+      <div class="row"><button type="button" class="pri" id="qrSend">🔗 링크 보내기</button><button type="button" id="qrSave">💾 이미지 저장</button></div>
+      <button type="button" class="close" id="qrClose">닫기</button>
+    </div>
+  </div>
   <main id="app"><div class="msg">가게 정보를 불러오는 중…</div></main>
   <div class="note">동네배달은 가게를 소개하고 연결만 해 드려요. 주문·결제는 각 가게와 배달앱에서 이뤄집니다.</div>
 </div>
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
 <script>
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const priceText = (p) => { const d = String(p || "").replace(/[^0-9]/g, ""); return d && /^[0-9,\s원]+$/.test(String(p).trim()) ? Number(d).toLocaleString("ko-KR") + "원" : String(p || ""); };
 const EMOJI = {치킨:"🍗",한식:"🍚",분식:"🍢",카페:"☕",중식:"🥟",일식:"🍣",피자:"🍕",야식:"🌶️",디저트:"🍰",반찬:"🥢",편의점:"🏪",약국:"💊",꽃집:"💐",미용실:"💇",세탁소:"👕",생활:"🛠️",기타:"📍"};
 const track = (id) => { try { navigator.sendBeacon("/api/click", new Blob([JSON.stringify({ id })], { type: "application/json" })); } catch (e) {} };
+function drawQR(canvas, url, px) {
+  const qr = qrcode(0, "M"); qr.addData(url); qr.make();
+  const n = qr.getModuleCount(), quiet = 2, cell = Math.floor(px / (n + quiet * 2)), size = cell * (n + quiet * 2);
+  canvas.width = size; canvas.height = size;
+  const c = canvas.getContext("2d"); c.fillStyle = "#fff"; c.fillRect(0, 0, size, size); c.fillStyle = "#111";
+  for (let r = 0; r < n; r++) for (let k = 0; k < n; k++) if (qr.isDark(r, k)) c.fillRect((k + quiet) * cell, (r + quiet) * cell, cell, cell);
+  return canvas;
+}
 const id = decodeURIComponent((location.pathname.match(/^\/s\/([^/]+)/) || [])[1] || "");
 const fromQR = new URLSearchParams(location.search).get("qr") === "1";
 
@@ -94,15 +124,36 @@ function render(s) {
     <div class="acts">
       ${s.link ? `<a class="btn order" href="${esc(s.link)}" target="_blank" rel="noopener" data-track>🛵 배달 주문하기</a>` : ""}
       ${s.tel ? `<a class="btn call" href="tel:${esc(s.tel)}" data-track>📞 전화하기</a>` : ""}
-      <button class="btn share" type="button" id="shareBtn">🔗 이 가게 공유하기</button>
+      <button class="btn share" type="button" id="shareBtn">🔗 가게 QR·공유하기</button>
     </div>
     ${ordered.length ? `<h2>🍽️ 메뉴</h2><ul class="menu">${ordered.map(x => `<li><span class="n">${x.b ? '<span class="best">대표</span>' : ""}${esc(x.n)}</span><span class="p">${esc(priceText(x.p))}</span></li>`).join("")}</ul>` : ""}
     <div class="foot">우리 동네 맛집·생활가게를 지도로 한눈에!<br><a href="/">🗺️ 동네배달에서 다른 가게 보기 ›</a></div>`;
   document.querySelectorAll("[data-track]").forEach(a => a.addEventListener("click", () => track(s.id), { once: true }));
-  $("shareBtn").onclick = async () => {
-    const url = location.origin + "/s/" + encodeURIComponent(s.id);
-    try { if (navigator.share) { await navigator.share({ title: s.name + " · 동네배달", url }); return; } } catch (e) { return; }
-    try { await navigator.clipboard.writeText(url); $("shareBtn").textContent = "✅ 주소가 복사됐어요"; } catch (e) {}
+  const url = location.origin + "/s/" + encodeURIComponent(s.id);
+  const qrUrl = url + "?qr=1";
+  $("shareBtn").onclick = () => {
+    try { drawQR($("qrCanvas"), qrUrl, 440); } catch (e) {}
+    $("qrTitle").textContent = s.name;
+    $("qrUrl").textContent = url.replace(/^https?:\/\//, "");
+    $("qrModal").hidden = false;
+  };
+  $("qrClose").onclick = () => { $("qrModal").hidden = true; };
+  $("qrModal").addEventListener("click", (e) => { if (e.target.id === "qrModal") $("qrModal").hidden = true; });
+  $("qrSend").onclick = async () => {
+    try { if (navigator.share) { await navigator.share({ title: s.name + " · 동네배달", text: s.name + " 메뉴·주문 바로 보기", url }); return; } } catch (e) { return; }
+    try { await navigator.clipboard.writeText(url); $("qrSend").textContent = "✅ 복사됨"; setTimeout(() => $("qrSend").textContent = "🔗 링크 보내기", 1500); } catch (e) {}
+  };
+  $("qrSave").onclick = () => {
+    const W = 900, H = 1180, c0 = document.createElement("canvas"); c0.width = W; c0.height = H;
+    const c = c0.getContext("2d");
+    c.fillStyle = "#fff"; c.fillRect(0, 0, W, H);
+    c.fillStyle = "#2EAF6A"; c.fillRect(0, 0, W, 190); c.fillRect(0, H - 50, W, 50);
+    c.textAlign = "center"; c.fillStyle = "#fff"; c.font = "900 78px sans-serif"; c.fillText("동네배달", W / 2, 110); c.font = "bold 34px sans-serif"; c.fillText("우리 동네 생활지도", W / 2, 162);
+    c.fillStyle = "#1A1A1A"; let fs = 72; c.font = `900 ${fs}px sans-serif`; while (c.measureText(s.name).width > W - 100 && fs > 36) { fs -= 4; c.font = `900 ${fs}px sans-serif`; } c.fillText(s.name, W / 2, 300);
+    c.fillStyle = "#555"; c.font = "bold 38px sans-serif"; c.fillText("QR 찍고 메뉴·주문 바로 보기", W / 2, 370);
+    try { c.drawImage(drawQR(document.createElement("canvas"), qrUrl, 560), 170, 410, 560, 560); } catch (e) {}
+    c.fillStyle = "#888"; c.font = "30px sans-serif"; c.fillText("dongnebaedal.com", W / 2, 1060);
+    const a = document.createElement("a"); a.download = "QR_" + s.name.replace(/[\\/:*?"<>|]/g, "") + ".png"; a.href = c0.toDataURL("image/png"); a.click();
   };
 }
 </script>
