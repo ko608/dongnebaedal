@@ -121,6 +121,16 @@
       <div id="dots" class="absolute bottom-2 left-0 right-0 flex justify-center gap-1.5"></div>
     </div>
 
+    <!-- 검색 -->
+    <form id="searchForm" class="mt-4 flex items-center gap-2 border-2 border-[#00C73C] rounded-full pl-4 pr-1.5 h-[46px] bg-white" role="search">
+      <label for="q" class="sr-only">가게 검색</label>
+      <span aria-hidden="true" class="text-[16px]">🔍</span>
+      <input id="q" type="search" enterkeyhint="search" autocomplete="off" class="flex-1 min-w-0 h-full text-[14px] outline-none bg-transparent" placeholder="철물점, 열쇠, 국밥… 찾는 가게를 검색하세요">
+      <button id="qClear" type="button" class="hidden text-[#999] text-[13px] px-2 h-[36px]" aria-label="검색어 지우기">✕</button>
+      <button type="submit" class="shrink-0 h-[36px] px-4 rounded-full bg-[#00C73C] text-white text-[13px] font-bold">검색</button>
+    </form>
+    <div id="qInfo" class="hidden text-[12px] text-[#00A832] font-bold mt-2"></div>
+
     <!-- 카테고리 -->
     <div id="chips" class="hide-scroll flex gap-2 overflow-x-auto mt-4 pb-1"></div>
 
@@ -369,7 +379,32 @@ function renderLegend() {
   const used = GROUPS.filter(g => STORES.some(s => typeof s.lat === "number" && g.cats.includes(s.cat)));
   $("legend").innerHTML = used.map(g => `<span class="inline-flex items-center gap-1"><span style="width:10px;height:10px;border-radius:99px;background:${g.color};display:inline-block"></span>${g.name}</span>`).join("") + (STORES.some(s => s.ad && !s.example) ? '<span class="inline-flex items-center gap-1">⭐ 광고</span>' : "");
 }
-function visible(){ return STORES.filter(s => filter === "전체" || s.cat === filter); }
+// ── 🔍 검색: 이름·업종·메뉴·소개·주소에서 찾고 가까운 순으로 ──
+let QUERY = "";
+const norm = (t) => String(t || "").toLowerCase().replace(/\s+/g, "");
+function matchQ(s) {
+  if (!QUERY) return true;
+  const hay = norm([s.name, s.cat, s.menu, s.intro, s.addr].join(" "));
+  return QUERY.split(/\s+/).filter(Boolean).every(w => hay.includes(norm(w)));
+}
+function visible(){ return STORES.filter(s => (QUERY || filter === "전체" || s.cat === filter) && matchQ(s)); }
+function refPoint(){ if (ME) return ME; try { if (map) { const c = map.getCenter(); return { lat: c.lat, lng: c.lng }; } } catch (e) {} return { lat: CENTER[0], lng: CENTER[1] }; }
+function runSearch(q) {
+  QUERY = String(q || "").trim();
+  $("qClear").classList.toggle("hidden", !QUERY);
+  if (QUERY) { filter = "전체"; renderChips(); }
+  renderList(); try { renderMap(); } catch (e) {}
+  const n = visible().length;
+  $("qInfo").classList.toggle("hidden", !QUERY);
+  if (QUERY) $("qInfo").textContent = n ? `🔍 '${QUERY}' 가게 ${n}곳 · ${ME ? "내 위치에서" : "지도 가운데에서"} 가까운 순서예요` : "";
+  if (QUERY && n && map) {
+    const pts = visible().filter(s => typeof s.lat === "number" && typeof s.lng === "number").map(s => [s.lat, s.lng]);
+    if (pts.length === 1) map.setView(pts[0], 16); else if (pts.length > 1) map.fitBounds(pts, { padding: [30, 30], maxZoom: 16 });
+  }
+}
+$("searchForm").addEventListener("submit", e => { e.preventDefault(); $("q").blur(); runSearch($("q").value); });
+$("q").addEventListener("input", () => { if (!$("q").value.trim() && QUERY) runSearch(""); });
+$("qClear").addEventListener("click", () => { $("q").value = ""; runSearch(""); $("q").focus(); });
 function renderMap() {
   if (!map) {
     map = L.map("map").setView(CENTER, 15);
@@ -414,11 +449,12 @@ function renderChips() {
   const have = ["전체", ...CATS.filter(c => STORES.some(s => s.cat === c))];
   $("chips").innerHTML = have.map(c => `<button data-cat="${c}" class="shrink-0 text-[12px] px-3 py-1.5 rounded-full border ${c === filter ? "bg-black text-white border-black" : "bg-white"}">${c === "전체" ? "전체" : (EMOJI[c] + " " + c)}</button>`).join("");
 }
-$("chips").addEventListener("click", e => { const b = e.target.closest("[data-cat]"); if (!b) return; filter = b.dataset.cat; renderChips(); renderList(); try { renderMap(); } catch (err) {} });
+$("chips").addEventListener("click", e => { const b = e.target.closest("[data-cat]"); if (!b) return; filter = b.dataset.cat; if (QUERY) { QUERY = ""; $("q").value = ""; $("qClear").classList.add("hidden"); $("qInfo").classList.add("hidden"); } renderChips(); renderList(); try { renderMap(); } catch (err) {} });
 function renderList() {
   const hasPos = s => typeof s.lat === "number" && typeof s.lng === "number";
   const dist = s => (ME && hasPos(s)) ? distM(ME, s) : Infinity;
-  const list = visible().slice().sort((a, b) => ME ? (dist(a) - dist(b)) : ((b.ad && !b.example) - (a.ad && !a.example) || a.example - b.example));
+  const RP = refPoint(), rdist = s => hasPos(s) ? distM(RP, s) : Infinity;
+  const list = visible().slice().sort((a, b) => ME ? (dist(a) - dist(b)) : QUERY ? (rdist(a) - rdist(b)) : ((b.ad && !b.example) - (a.ad && !a.example) || a.example - b.example));
   $("store-list").innerHTML = list.length ? list.map(s => {
     const badge = s.example ? '<span class="text-[10px] bg-[#9E9E9E] text-white px-1.5 py-0.5 rounded-full ml-1">예시</span>' : (s.ad ? '<span class="text-[10px] bg-[#E53935] text-white px-1.5 py-0.5 rounded-full ml-1">광고</span>' : "");
     return `<div class="rounded-[16px] border p-4 flex gap-3 min-w-0 overflow-hidden"><div class="w-[56px] h-[56px] shrink-0 rounded-[12px] bg-[#F3F4F6] grid place-items-center text-[24px]">${EMOJI[s.cat] || "🍱"}</div>
@@ -426,10 +462,10 @@ function renderList() {
       <div class="text-[12px] text-[#444] mt-1 truncate">${esc(s.menu)}</div>
       <div class="text-[11px] text-[#999] mt-1 truncate">${ME && isFinite(dist(s)) ? `<b class="text-[#1E88E5]">📍 ${distText(dist(s))}</b> · ` : ""}${esc(s.addr)}${s.intro ? " · " + esc(s.intro) : ""}</div>
       <div class="mt-2 flex flex-wrap items-center gap-2">${s.yt ? `<button type="button" data-yt="${esc(s.id)}" class="inline-block text-[11px] font-bold px-3 py-1.5 rounded-full bg-[#FF0000] text-white">▶ 영상</button>` : ""}${btnHtml(s, "inline-block text-[11px] font-bold px-3 py-1.5 rounded-full bg-black text-white", "inline-block text-[11px] font-bold px-3 py-1.5 rounded-full bg-[#00C73C] text-white")}${s.example ? '<span class="text-[10px] text-[#aaa]">예시 가게예요</span>' : ""}</div></div></div>`;
-  }).join("") : '<div class="text-[12px] text-[#999] py-8 text-center border border-dashed rounded-xl">이 종류의 가게가 아직 없어요</div>';
-  if (ME && list.length) $("store-list").insertAdjacentHTML("afterbegin", '<div class="text-[11px] text-[#1E88E5] font-bold -mb-1">📍 내 위치에서 가까운 순서예요</div>');
+  }).join("") : (QUERY ? `<div class="text-[13px] text-[#555] py-8 px-4 text-center border border-dashed rounded-xl">'${esc(QUERY)}' 가게가 아직 등록되지 않았어요.<br>아는 가게가 있으면 알려 주세요!<div class="mt-3"><button type="button" data-goreg="1" class="h-[44px] px-5 rounded-full bg-[#00C73C] text-white text-[13px] font-bold">➕ 가게 등록하기</button></div></div>` : '<div class="text-[12px] text-[#999] py-8 text-center border border-dashed rounded-xl">이 종류의 가게가 아직 없어요</div>');
+  if (ME && list.length && !QUERY) $("store-list").insertAdjacentHTML("afterbegin", '<div class="text-[11px] text-[#1E88E5] font-bold -mb-1">📍 내 위치에서 가까운 순서예요</div>');
 }
-$("store-list").addEventListener("click", e => { const a = e.target.closest("[data-click]"); if (a) track(a.dataset.click); });
+$("store-list").addEventListener("click", e => { const g = e.target.closest("[data-goreg]"); if (g) { showTab("register"); window.scrollTo(0, 0); return; } const a = e.target.closest("[data-click]"); if (a) track(a.dataset.click); });
 async function loadHome() {
   try { QUICK = await api("quick/info"); } catch (e) { QUICK = { on: false, name: "" }; }
   $("quickBanner").classList.toggle("hidden", !QUICK.on);
