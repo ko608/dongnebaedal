@@ -48,7 +48,7 @@
 <div class="mx-auto max-w-[520px] bg-white min-h-screen flex flex-col shadow">
 
 <header class="sticky top-0 z-20 bg-white border-b px-4 h-[56px] flex items-center justify-between gap-2 whitespace-nowrap">
-  <div class="flex items-center gap-2"><div class="w-7 h-7 rounded-full bg-[#00C73C] text-white grid place-items-center font-black text-[13px]">동</div><span class="leading-tight"><b class="text-[15px] block">동네배달</b><span class="text-[10px] text-[#888] block -mt-0.5">우리 동네 생활지도</span></span><span class="text-[11px] px-1.5 py-0.5 rounded-full bg-[#F1F8F2] text-[#00A832] ml-1 max-[380px]:hidden">둔산동</span></div>
+  <div class="flex items-center gap-2"><img src="/logo.png" alt="동네배달 로고" width="28" height="28" class="w-7 h-7 rounded-full"><span class="leading-tight"><b class="text-[15px] block">동네배달</b><span class="text-[10px] text-[#888] block -mt-0.5">우리 동네 생활지도</span></span><span class="text-[11px] px-1.5 py-0.5 rounded-full bg-[#F1F8F2] text-[#00A832] ml-1 max-[380px]:hidden">둔산동</span></div>
   <div class="flex items-center gap-1.5">
     <button id="cpBtn" type="button" class="h-[30px] px-2.5 rounded-full bg-[#E52528] text-white text-[12px] font-bold whitespace-nowrap shadow-sm">🛒 쿠팡 바로가기</button>
     <button id="shareBtn" class="text-[12px] border rounded-full px-2.5 h-[30px] whitespace-nowrap">공유</button>
@@ -471,7 +471,7 @@ $("unlockBtn").onclick = async () => {
   const raw = $("pw").value;
   const pw = raw.replace(/[^\x21-\x7E]/g, "");
   if (/[ㄱ-ㅎㅏ-ㅣ가-힣]/.test(raw)) { $("lockMsg").textContent = "키보드를 영어로 바꾸고 입력해 주세요."; return; }
-  sessionStorage.setItem("dn_pw", pw); await loadAdmin();
+  sessionStorage.setItem("dn_pw", pw); try { localStorage.setItem("dn_admin", "1"); } catch (e) {} await loadAdmin();
 };
 $("pw").addEventListener("keydown", e => { if (e.key === "Enter") $("unlockBtn").click(); });
 $("logoutBtn").onclick = () => { sessionStorage.removeItem("dn_pw"); $("pw").value = ""; $("admin-content").classList.add("hidden"); $("admin-lock").classList.remove("hidden"); };
@@ -659,7 +659,7 @@ $("quick-admin").addEventListener("click", async e => {
 });
 
 loadHome();
-(function(){ try{ const d=new Date(Date.now()+9*3600e3).toISOString().slice(0,10); if(localStorage.getItem("dn_v")!==d){ localStorage.setItem("dn_v",d); navigator.sendBeacon("/api/visit", new Blob(["{}"],{type:"application/json"})); } }catch(e){} })();
+(function(){ try{ const d=new Date(Date.now()+9*3600e3).toISOString().slice(0,10); if(localStorage.getItem("dn_admin")!=="1" && localStorage.getItem("dn_v")!==d){ localStorage.setItem("dn_v",d); navigator.sendBeacon("/api/visit", new Blob(["{}"],{type:"application/json"})); } }catch(e){} })();
 </script>
 </body>
 </html>
